@@ -1,0 +1,190 @@
+[gd_scene format=3 uid="uid://l21thig7wm6i"]
+
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="1_player"]
+
+[sub_resource type="Environment" id="environment"]
+background_mode = 1
+background_color = Color(0.72, 0.78, 0.82, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.6
+
+[sub_resource type="StandardMaterial3D" id="floor_mat"]
+albedo_color = Color(0.45, 0.41, 0.38, 1)
+
+[sub_resource type="BoxMesh" id="floor_mesh"]
+material = SubResource("floor_mat")
+size = Vector3(12.6, 0.2, 8.6)
+
+[sub_resource type="BoxShape3D" id="floor_shape"]
+size = Vector3(12.6, 0.2, 8.6)
+
+[sub_resource type="StandardMaterial3D" id="wall_mat"]
+albedo_color = Color(0.58, 0.55, 0.52, 1)
+
+[sub_resource type="BoxMesh" id="wall_x_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(12.6, 1.2, 0.3)
+
+[sub_resource type="BoxShape3D" id="wall_x_shape"]
+size = Vector3(12.6, 1.2, 0.3)
+
+[sub_resource type="BoxMesh" id="wall_z_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 1.2, 8)
+
+[sub_resource type="BoxShape3D" id="wall_z_shape"]
+size = Vector3(0.3, 1.2, 8)
+
+[sub_resource type="StandardMaterial3D" id="counter_mat"]
+albedo_color = Color(0.78, 0.76, 0.72, 1)
+
+[sub_resource type="BoxMesh" id="counter_mesh"]
+material = SubResource("counter_mat")
+size = Vector3(1, 0.9, 1)
+
+[sub_resource type="BoxShape3D" id="counter_shape"]
+size = Vector3(1, 0.9, 1)
+
+[node name="Kitchen" type="Node3D" unique_id=1510658405]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=315482025]
+environment = SubResource("environment")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1868489777]
+transform = Transform3D(0.866, 0.4096, -0.2868, 0, 0.5736, 0.8192, 0.5, -0.7094, 0.4967, 0, 8, 0)
+light_energy = 0.7
+shadow_enabled = true
+
+[node name="Camera" type="Camera3D" parent="." unique_id=2139624209]
+transform = Transform3D(1, 0, 0, 0, 0.6157, 0.788, 0, -0.788, 0.6157, 0, 9.5, 7.5)
+current = true
+fov = 45.0
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=691877067]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor" unique_id=1447097801]
+mesh = SubResource("floor_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Floor" unique_id=424380416]
+shape = SubResource("floor_shape")
+
+[node name="WallNorth" type="StaticBody3D" parent="." unique_id=313673218]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -4.15)
+
+[node name="Mesh" type="MeshInstance3D" parent="WallNorth" unique_id=365783273]
+mesh = SubResource("wall_x_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="WallNorth" unique_id=1752742214]
+shape = SubResource("wall_x_shape")
+
+[node name="WallSouth" type="StaticBody3D" parent="." unique_id=1374357496]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 4.15)
+
+[node name="Mesh" type="MeshInstance3D" parent="WallSouth" unique_id=1673267626]
+mesh = SubResource("wall_x_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="WallSouth" unique_id=336043159]
+shape = SubResource("wall_x_shape")
+
+[node name="WallWest" type="StaticBody3D" parent="." unique_id=1985606223]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.15, 0.6, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="WallWest" unique_id=1808777534]
+mesh = SubResource("wall_z_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="WallWest" unique_id=1916120764]
+shape = SubResource("wall_z_shape")
+
+[node name="WallEast" type="StaticBody3D" parent="." unique_id=1491268685]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.15, 0.6, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="WallEast" unique_id=497212708]
+mesh = SubResource("wall_z_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="WallEast" unique_id=1902593347]
+shape = SubResource("wall_z_shape")
+
+[node name="Counters" type="Node3D" parent="." unique_id=83872602]
+
+[node name="CounterN1" type="StaticBody3D" parent="Counters" unique_id=1182263268]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.45, -3.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN1" unique_id=1973678628]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN1" unique_id=1083342365]
+shape = SubResource("counter_shape")
+
+[node name="CounterN2" type="StaticBody3D" parent="Counters" unique_id=1530714048]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, -3.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN2" unique_id=1446478136]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN2" unique_id=1322302442]
+shape = SubResource("counter_shape")
+
+[node name="CounterN3" type="StaticBody3D" parent="Counters" unique_id=954132976]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -3.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN3" unique_id=1987130909]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN3" unique_id=2053132603]
+shape = SubResource("counter_shape")
+
+[node name="CounterN4" type="StaticBody3D" parent="Counters" unique_id=1840469871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, -3.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN4" unique_id=2068287621]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN4" unique_id=906765750]
+shape = SubResource("counter_shape")
+
+[node name="CounterN5" type="StaticBody3D" parent="Counters" unique_id=2058407675]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -3.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN5" unique_id=306036084]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN5" unique_id=628699520]
+shape = SubResource("counter_shape")
+
+[node name="IslandW" type="StaticBody3D" parent="Counters" unique_id=1884721954]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, 0.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/IslandW" unique_id=1185017095]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/IslandW" unique_id=545084651]
+shape = SubResource("counter_shape")
+
+[node name="IslandC" type="StaticBody3D" parent="Counters" unique_id=1019876063]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/IslandC" unique_id=1669650938]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/IslandC" unique_id=1861958335]
+shape = SubResource("counter_shape")
+
+[node name="IslandE" type="StaticBody3D" parent="Counters" unique_id=627297644]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, 0.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counters/IslandE" unique_id=971776777]
+mesh = SubResource("counter_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="Counters/IslandE" unique_id=1020606470]
+shape = SubResource("counter_shape")
+
+[node name="Player1" parent="." unique_id=743813322 instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.05, 2)
+player_color = Color(0.31, 0.616, 1, 1)
+
+[node name="Player2" parent="." unique_id=1846613129 instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.05, 2)
+player_id = 2
+player_color = Color(1, 0.616, 0.31, 1)
