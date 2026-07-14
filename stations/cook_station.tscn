@@ -1,0 +1,90 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://stations/cook_station.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="body_mat"]
+albedo_color = Color(0.28, 0.28, 0.30, 1)
+
+[sub_resource type="BoxMesh" id="body_mesh"]
+material = SubResource("body_mat")
+size = Vector3(1, 0.9, 1)
+
+[sub_resource type="BoxShape3D" id="body_shape"]
+size = Vector3(1, 0.9, 1)
+
+[sub_resource type="StandardMaterial3D" id="burner_mat"]
+albedo_color = Color(0.12, 0.12, 0.13, 1)
+
+[sub_resource type="CylinderMesh" id="burner_mesh"]
+material = SubResource("burner_mat")
+top_radius = 0.34
+bottom_radius = 0.34
+height = 0.06
+
+[sub_resource type="StandardMaterial3D" id="highlight_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.35, 0.3)
+
+[sub_resource type="BoxMesh" id="highlight_mesh"]
+material = SubResource("highlight_mat")
+size = Vector3(1.08, 0.98, 1.08)
+
+[sub_resource type="StandardMaterial3D" id="gauge_bg_mat"]
+shading_mode = 0
+albedo_color = Color(0.08, 0.08, 0.09, 1)
+
+[sub_resource type="BoxMesh" id="gauge_bg_mesh"]
+material = SubResource("gauge_bg_mat")
+size = Vector3(0.8, 0.03, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="perfect_mat"]
+shading_mode = 0
+albedo_color = Color(0.30, 0.85, 0.35, 1)
+
+[sub_resource type="BoxMesh" id="perfect_mesh"]
+material = SubResource("perfect_mat")
+size = Vector3(0.16, 0.035, 0.16)
+
+[sub_resource type="BoxMesh" id="fill_mesh"]
+size = Vector3(0.8, 0.05, 0.12)
+
+[node name="CookStation" type="StaticBody3D"]
+collision_layer = 5
+collision_mask = 0
+script = ExtResource("1_script")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("body_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+shape = SubResource("body_shape")
+
+[node name="Burner" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
+mesh = SubResource("burner_mesh")
+
+[node name="Highlight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+visible = false
+mesh = SubResource("highlight_mesh")
+
+[node name="Slot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, 0)
+
+[node name="Gauge" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.62)
+
+[node name="BG" type="MeshInstance3D" parent="Gauge"]
+mesh = SubResource("gauge_bg_mesh")
+
+[node name="PerfectZone" type="MeshInstance3D" parent="Gauge"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.192, 0.006, 0)
+mesh = SubResource("perfect_mesh")
+
+[node name="FillPivot" type="Node3D" parent="Gauge"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0.012, 0)
+
+[node name="Fill" type="MeshInstance3D" parent="Gauge/FillPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 0)
+mesh = SubResource("fill_mesh")

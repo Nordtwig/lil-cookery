@@ -1,6 +1,12 @@
 [gd_scene format=3 uid="uid://l21thig7wm6i"]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://stations/counter.tscn" id="2_counter"]
+[ext_resource type="PackedScene" path="res://stations/crate.tscn" id="3_crate"]
+[ext_resource type="PackedScene" path="res://stations/cook_station.tscn" id="4_cook"]
+[ext_resource type="PackedScene" path="res://stations/plate_stack.tscn" id="5_plates"]
+[ext_resource type="PackedScene" path="res://stations/serve_station.tscn" id="6_serve"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="7_hud"]
 
 [sub_resource type="Environment" id="environment"]
 background_mode = 1
@@ -35,16 +41,6 @@ size = Vector3(0.3, 1.2, 8)
 
 [sub_resource type="BoxShape3D" id="wall_z_shape"]
 size = Vector3(0.3, 1.2, 8)
-
-[sub_resource type="StandardMaterial3D" id="counter_mat"]
-albedo_color = Color(0.78, 0.76, 0.72, 1)
-
-[sub_resource type="BoxMesh" id="counter_mesh"]
-material = SubResource("counter_mat")
-size = Vector3(1, 0.9, 1)
-
-[sub_resource type="BoxShape3D" id="counter_shape"]
-size = Vector3(1, 0.9, 1)
 
 [node name="Kitchen" type="Node3D" unique_id=1510658405]
 
@@ -108,77 +104,54 @@ shape = SubResource("wall_z_shape")
 
 [node name="Counters" type="Node3D" parent="." unique_id=83872602]
 
-[node name="CounterN1" type="StaticBody3D" parent="Counters" unique_id=1182263268]
+[node name="CounterN1" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.45, -3.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN1" unique_id=1973678628]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN1" unique_id=1083342365]
-shape = SubResource("counter_shape")
-
-[node name="CounterN2" type="StaticBody3D" parent="Counters" unique_id=1530714048]
+[node name="CounterN2" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, -3.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN2" unique_id=1446478136]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN2" unique_id=1322302442]
-shape = SubResource("counter_shape")
-
-[node name="CounterN3" type="StaticBody3D" parent="Counters" unique_id=954132976]
+[node name="CounterN3" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -3.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN3" unique_id=1987130909]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN3" unique_id=2053132603]
-shape = SubResource("counter_shape")
-
-[node name="CounterN4" type="StaticBody3D" parent="Counters" unique_id=1840469871]
+[node name="CounterN4" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, -3.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN4" unique_id=2068287621]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN4" unique_id=906765750]
-shape = SubResource("counter_shape")
-
-[node name="CounterN5" type="StaticBody3D" parent="Counters" unique_id=2058407675]
+[node name="CounterN5" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -3.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/CounterN5" unique_id=306036084]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/CounterN5" unique_id=628699520]
-shape = SubResource("counter_shape")
-
-[node name="IslandW" type="StaticBody3D" parent="Counters" unique_id=1884721954]
+[node name="IslandW" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, 0.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/IslandW" unique_id=1185017095]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/IslandW" unique_id=545084651]
-shape = SubResource("counter_shape")
-
-[node name="IslandC" type="StaticBody3D" parent="Counters" unique_id=1019876063]
+[node name="IslandC" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/IslandC" unique_id=1669650938]
-mesh = SubResource("counter_mesh")
-
-[node name="Shape" type="CollisionShape3D" parent="Counters/IslandC" unique_id=1861958335]
-shape = SubResource("counter_shape")
-
-[node name="IslandE" type="StaticBody3D" parent="Counters" unique_id=627297644]
+[node name="IslandE" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, 0.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="Counters/IslandE" unique_id=971776777]
-mesh = SubResource("counter_mesh")
+[node name="TomatoCrate" parent="Counters" instance=ExtResource("3_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, -1)
+item_type = "tomato"
+item_color = Color(0.85, 0.2, 0.15, 1)
+item_cookable = true
 
-[node name="Shape" type="CollisionShape3D" parent="Counters/IslandE" unique_id=1020606470]
-shape = SubResource("counter_shape")
+[node name="CheeseCrate" parent="Counters" instance=ExtResource("3_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, 1)
+item_type = "cheese"
+item_color = Color(0.95, 0.8, 0.25, 1)
+
+[node name="StoveA" parent="Counters" instance=ExtResource("4_cook")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, -3)
+
+[node name="StoveB" parent="Counters" instance=ExtResource("4_cook")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, 3)
+
+[node name="PlateStack" parent="Counters" instance=ExtResource("5_plates")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.45, -3.5)
+
+[node name="ServeStation" parent="." instance=ExtResource("6_serve")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 2.8)
+
+[node name="HUD" parent="." instance=ExtResource("7_hud")]
 
 [node name="Player1" parent="." unique_id=743813322 instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.05, 2)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_script"]
 
@@ -13,7 +13,12 @@ height = 1.4
 [sub_resource type="BoxMesh" id="nose_mesh"]
 size = Vector3(0.16, 0.16, 0.28)
 
+[sub_resource type="SphereShape3D" id="reach_shape"]
+radius = 0.75
+
 [node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 3
 script = ExtResource("1_script")
 
 [node name="CollisionShape" type="CollisionShape3D" parent="."]
@@ -27,3 +32,14 @@ mesh = SubResource("capsule_mesh")
 [node name="Nose" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, -0.38)
 mesh = SubResource("nose_mesh")
+
+[node name="HoldPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -0.55)
+
+[node name="Reach" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="ReachShape" type="CollisionShape3D" parent="Reach"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.55)
+shape = SubResource("reach_shape")

@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/hud.gd" id="1_script"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Money" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 220.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 40
+text = "$0"
