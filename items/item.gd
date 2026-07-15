@@ -187,6 +187,14 @@ func season(bonus: float, spice_color: Color) -> void:
 	_flash_seasoned(spice_color)
 
 
+## True if nothing has happened to this item since it was dispensed — no
+## prep, no cooking, no chopping, no seasoning. What a Crate checks before
+## accepting an ingredient back (undoing the dispense); Plate overrides this
+## with its own meaning ("no components added yet").
+func is_unmodified() -> bool:
+	return _prep_scores.is_empty() and chop_progress == 0.0 and doneness == 0.0 and not seasoned
+
+
 # --- scoring ---
 
 ## 0..1 contribution to a dish: low if under-prepped (steps left undone),
@@ -271,9 +279,12 @@ func flip_visual() -> void:
 
 
 func _update_tint() -> void:
-	# Only chopped, cookable items show the cook tint (pale raw → rich at done
-	# → charcoal burnt). Everything else shows its base color.
-	if has_step(Ingredients.Verb.COOK) and step_done(Ingredients.Verb.CHOP):
+	# Cookable items show the cook tint (pale raw → rich at done → charcoal
+	# burnt) once any prior CHOP step is out of the way — or immediately, for
+	# an ingredient like meat that skips chopping and goes straight to the
+	# stove. Everything else shows its base color.
+	var chop_clear := not has_step(Ingredients.Verb.CHOP) or step_done(Ingredients.Verb.CHOP)
+	if has_step(Ingredients.Verb.COOK) and chop_clear:
 		var pale := color.lerp(Color(0.90, 0.85, 0.80), 0.55)
 		var cooked: Color
 		if doneness <= 1.0:

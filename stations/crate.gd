@@ -6,7 +6,9 @@ extends Station
 ## stock by one. Once empty, interacting again triggers an emergency restock:
 ## a short delay, a money cost, then the bin refills to max_stock. This is
 ## the design doc's "express delivery" pressure valve (§6b), standing in for
-## the real day/night ordering system until that exists.
+## the real day/night ordering system until that exists. Carrying a matching,
+## still-unmodified ingredient and interacting instead puts it back — undoes
+## the dispense, no cost, no delay, since nothing was actually spent on it.
 
 const ITEM_SCENE := preload("res://items/item.tscn")
 
@@ -29,15 +31,19 @@ func _ready() -> void:
 
 
 func interact(player: Player) -> void:
-	if player.held_item != null:
-		return
-	if stock <= 0:
-		_try_restock()
-		return
-	var item: Item = ITEM_SCENE.instantiate()
-	item.item_type = item_type
-	player.take_item(item)
-	stock -= 1
+	var carried := player.held_item
+	if carried == null:
+		if stock <= 0:
+			_try_restock()
+			return
+		var item: Item = ITEM_SCENE.instantiate()
+		item.item_type = item_type
+		player.take_item(item)
+		stock -= 1
+	elif carried.item_type == item_type and carried.is_unmodified() and stock < max_stock:
+		player.drop_item()
+		carried.queue_free()
+		stock += 1
 
 
 func _try_restock() -> void:

@@ -2,8 +2,13 @@ class_name ServeStation
 extends Station
 
 ## The pass. A customer waits here wanting the day's dish. Hand over a plate
-## and it's scored, paid out, and a floating result shows how it went. Only
-## plates are accepted; anything else is ignored.
+## and it's scored, paid out, and a floating result shows how it went. Empty-
+## handed interact instead grabs an order ticket for whatever's currently
+## being asked for — a physical reminder you can tag onto a plate elsewhere
+## (see Plate.tag_order) — purely a convenience; serving still always scores
+## against this station's live order, tagged or not.
+
+const TICKET_SCENE := preload("res://items/order_ticket.tscn")
 
 const _BAND_TEXT := {
 	"perfect": "PERFECT!",
@@ -29,11 +34,16 @@ func _ready() -> void:
 
 
 func interact(player: Player) -> void:
+	if player.held_item == null:
+		var ticket: OrderTicket = TICKET_SCENE.instantiate()
+		ticket.dish = _current_dish
+		player.take_item(ticket)
+		return
 	var plate := player.held_item as Plate
 	if plate == null:
 		return
 	player.drop_item()
-	var res := plate.evaluate(Recipes.required_for(_current_dish))
+	var res := plate.evaluate(Recipes.required_for(_current_dish), Recipes.base_for(_current_dish))
 	plate.queue_free()
 	GameState.add_money(res.value)
 	_show_result(res)

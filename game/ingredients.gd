@@ -10,7 +10,7 @@ enum Verb { CHOP, COOK }
 const DEFS := {
 	"tomato": {
 		"color": Color(0.85, 0.20, 0.15),
-		"steps": [Verb.CHOP, Verb.COOK],
+		"steps": [Verb.CHOP],  # eaten raw — diced, never cooked
 	},
 	"cheese": {
 		"color": Color(0.95, 0.80, 0.25),
@@ -19,6 +19,14 @@ const DEFS := {
 	"bread": {
 		"color": Color(0.85, 0.65, 0.35),  # toasts pale tan -> golden -> charred
 		"steps": [Verb.CHOP, Verb.COOK],  # sliced, then toasted
+	},
+	"meat": {
+		"color": Color(0.65, 0.30, 0.28),  # raw pink -> seared brown -> charred
+		"steps": [Verb.COOK],  # a pre-formed patty; only needs the stove
+	},
+	"lettuce": {
+		"color": Color(0.45, 0.70, 0.30),
+		"steps": [Verb.CHOP],
 	},
 }
 
