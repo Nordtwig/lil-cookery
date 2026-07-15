@@ -17,12 +17,15 @@ const _BAND_COLOR := {
 }
 
 @onready var _result: Label3D = $Result
+@onready var _want_label: Label3D = $Customer/Want
 var _result_home: Vector3
+var _current_dish := ""
 
 
 func _ready() -> void:
 	_result_home = _result.position
 	_result.visible = false
+	_next_order()
 
 
 func interact(player: Player) -> void:
@@ -30,10 +33,16 @@ func interact(player: Player) -> void:
 	if plate == null:
 		return
 	player.drop_item()
-	var res := plate.evaluate()
+	var res := plate.evaluate(Recipes.required_for(_current_dish))
 	plate.queue_free()
 	GameState.add_money(res.value)
 	_show_result(res)
+	_next_order()
+
+
+func _next_order() -> void:
+	_current_dish = Recipes.random_name()
+	_want_label.text = "Wants: %s" % _current_dish.to_upper()
 
 
 func _show_result(res: Dictionary) -> void:

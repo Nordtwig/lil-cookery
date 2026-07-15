@@ -6,7 +6,10 @@ extends Node
 
 signal money_changed(total: int)
 
-var money := 0
+## Small starting cushion so an early bad-luck run (a crate empties before
+## the first dish is served) never hard-locks a session on an emergency
+## restock nobody can afford yet.
+var money := 15
 
 
 func add_money(amount: int) -> void:

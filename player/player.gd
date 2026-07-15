@@ -52,8 +52,13 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	_update_target()
-	if _target != null and Input.is_action_just_pressed(prefix + "_interact"):
-		_target.interact(self)
+	if _target != null:
+		if Input.is_action_just_pressed(prefix + "_interact"):
+			_target.interact(self)
+		if Input.is_action_pressed(prefix + "_interact"):
+			_target.interact_hold(self, delta)
+		if Input.is_action_just_pressed(prefix + "_action"):
+			_target.action(self)
 
 
 func take_item(item: Item) -> void:
@@ -65,6 +70,12 @@ func drop_item() -> Item:
 	var item := held_item
 	held_item = null
 	return item
+
+
+## The station currently targeted (highlighted), or null. Read-only outside
+## Player — InspectPanel uses this to show info about what you're facing.
+func get_target() -> Station:
+	return _target
 
 
 func _update_target() -> void:

@@ -1,65 +1,118 @@
 class_name Item
 extends Node3D
 
-## A carryable thing. Items have no physics — they are always parented to
-## either a station slot or a player's hold point.
+## A carryable ingredient. Items have no physics — they are always parented to
+## a station slot, a player's hold point, or a plate. Prep is an ordered list
+## of steps (from Ingredients); each completed step records a 0..1 skill score
+## that feeds the component's contribution to dish quality.
 
 @export var item_type := ""
+## Base albedo. Derived from Ingredients for real ingredients; set directly in
+## the scene for type-less items like the plate.
 @export var color := Color.WHITE
-## Whether a cook station can cook this item. Non-cookable items (cold
-## components like cheese) just sit on a stove doing nothing.
-@export var cookable := false
 
-# Cooking runs on a 0..BURNT_CAP "doneness" scale. Bands (design doc §4,
-# plus Burnt as the overcook consequence). The Perfect window is generous —
-# reward good play, don't punish.
+# Cooking runs on a 0..BURNT_CAP "doneness" scale (the COOK step). Bands, plus
+# Burnt as the overcook consequence. The Perfect window is generous.
 const POOR_MAX := 0.5
 const GOOD_MAX := 0.8
 const PERFECT_MAX := 1.05
 const BURNT_CAP := 1.25
 
-## True until the item is pulled from a cook station (or has burned). Stops
-## it from re-cooking if placed back on a stove.
-var is_raw := true
+# Chopping runs on the same shape of scale as cooking (the CHOP step): a
+# continuous 0..CHOP_OVERCUT_CAP meter with a real downside for going past
+# Perfect, mirroring doneness/burnt. Only advances while a player actively
+# holds interact — unlike cooking, nothing chops itself unattended.
+const CHOP_UNDER_MAX := 0.5
+const CHOP_GOOD_MAX := 0.8
+const CHOP_PERFECT_MAX := 1.05
+const CHOP_OVERCUT_CAP := 1.25
+
+## How far the COOK step has progressed. Also drives the cooked tint.
 var doneness := 0.0
-## Set when cooking finishes: "poor" / "good" / "perfect" / "burnt". Empty
-## while raw or for never-cooked components. Read later for dish scoring.
-var quality := ""
+## How far the CHOP step has progressed.
+var chop_progress := 0.0
+
+## Set by a Spice applied at a station. One-shot bonus — never stacks, never
+## required, only ever raises quality_value().
+var seasoned := false
+var seasoning_bonus := 0.0
+
+var _steps: Array = []
+var _step_index := 0
+var _prep_scores := {}  # Ingredients.Verb -> float (0..1)
 
 @onready var _mesh: MeshInstance3D = $Mesh
+@onready var _pieces: Node3D = $Pieces
+@onready var _season_marks: Node3D = $SeasonMarks
 
 var _mat: StandardMaterial3D
 
 
 func _ready() -> void:
+	_steps = Ingredients.steps_for(item_type)
+	if item_type != "":
+		color = Ingredients.color_for(item_type)
 	_mat = StandardMaterial3D.new()
 	_mesh.material_override = _mat
+	for piece in _pieces.get_children():
+		(piece as MeshInstance3D).material_override = _mat
+	_update_visual_state()
 	_update_tint()
 
 
-## Advance cooking by `delta` seconds at the given rate (doneness/sec),
-## re-tinting toward cooked/charred. Caps at Burnt so an abandoned item
-## settles at low value rather than vanishing.
+## The next unfinished prep verb, or -1 if fully prepped.
+func next_verb() -> int:
+	return _steps[_step_index] if _step_index < _steps.size() else -1
+
+
+func has_step(verb: int) -> bool:
+	return verb in _steps
+
+
+func step_done(verb: int) -> bool:
+	return _prep_scores.has(verb)
+
+
+func is_fully_prepped() -> bool:
+	return _step_index >= _steps.size()
+
+
+## Record the current step as complete with a 0..1 skill score and advance.
+func complete_step(score: float) -> void:
+	var verb := next_verb()
+	if verb == -1:
+		return
+	_prep_scores[verb] = score
+	_step_index += 1
+	_update_visual_state()
+	_update_tint()
+	if verb == Ingredients.Verb.CHOP:
+		_punch(_active_visual())
+
+
+# --- COOK step ---
+
+## Advance cooking by `delta` at the given rate (doneness/sec), re-tinting.
+## Caps at Burnt so an abandoned item settles at low value, never vanishes.
 func cook(delta: float, rate: float) -> void:
 	doneness = minf(doneness + rate * delta, BURNT_CAP)
 	_update_tint()
 
 
-## 0..1 contribution of this component to a dish. Cooked items score by
-## band; a raw-but-cookable item scored badly (undercooked); a non-cookable
-## cold component (e.g. cheese) is fine as-is at a neutral-good value.
-func quality_value() -> float:
-	match quality:
-		"perfect": return 1.0
-		"good": return 0.7
-		"poor": return 0.4
-		"burnt": return 0.2
-	if cookable:
-		return 0.3
-	return 0.8
+## Locks in the cook step's score. The first time (step not yet done), this
+## advances the prep chain normally via complete_step(). If it's already been
+## cooked once and is being re-cooked (pulled, set aside, put back on a
+## stove, pulled again), this just updates the recorded score in place —
+## `doneness` was never reset, so cooking genuinely resumes rather than being
+## locked out the moment the item first left the stove.
+func lock_in_cook_score(score: float) -> void:
+	if step_done(Ingredients.Verb.COOK):
+		_prep_scores[Ingredients.Verb.COOK] = score
+	else:
+		complete_step(score)
 
 
-func current_band() -> String:
+func current_cook_band() -> String:
 	if doneness < POOR_MAX:
 		return "poor"
 	elif doneness < GOOD_MAX:
@@ -69,27 +122,168 @@ func current_band() -> String:
 	return "burnt"
 
 
-## Freeze the current cooking result into the item.
-func finish_cook() -> void:
-	is_raw = false
-	quality = current_band()
+func cook_score() -> float:
+	match current_cook_band():
+		"perfect": return 1.0
+		"good": return 0.7
+		"poor": return 0.4
+	return 0.2  # burnt
+
+
+# --- CHOP step ---
+
+## Advance chopping by `delta` at the given rate (chop_progress/sec). Caps at
+## CHOP_OVERCUT_CAP so leaving it under the knife too long settles at a low
+## value, never vanishes — same shape as an abandoned item on the stove.
+func chop(delta: float, rate: float) -> void:
+	chop_progress = minf(chop_progress + rate * delta, CHOP_OVERCUT_CAP)
+	_update_visual_state()
+
+
+func current_chop_band() -> String:
+	if chop_progress < CHOP_UNDER_MAX:
+		return "undercut"
+	elif chop_progress < CHOP_GOOD_MAX:
+		return "good"
+	elif chop_progress < CHOP_PERFECT_MAX:
+		return "perfect"
+	return "overcut"
+
+
+## Locks in the chop step's score — same resume pattern as
+## lock_in_cook_score(): first time advances the prep chain normally via
+## complete_step(); already chopped once (a resumed item, put back on a
+## board to refine further) just updates the recorded score in place.
+## chop_progress is never reset, so it genuinely resumes rather than
+## restarting.
+func lock_in_chop_score(score: float) -> void:
+	if step_done(Ingredients.Verb.CHOP):
+		_prep_scores[Ingredients.Verb.CHOP] = score
+	else:
+		complete_step(score)
+
+
+func chop_score() -> float:
+	match current_chop_band():
+		"perfect": return 1.0
+		"good": return 0.7
+		"undercut": return 0.4
+	return 0.2  # overcut
+
+
+# --- seasoning (optional, from a Spice) ---
+
+## Real ingredients only (not a Plate or Spice, which have no item_type), and
+## only once — a second shake of the same or another spice does nothing more.
+func can_be_seasoned() -> bool:
+	return item_type != "" and not seasoned
+
+
+func season(bonus: float, spice_color: Color) -> void:
+	if not can_be_seasoned():
+		return
+	seasoned = true
+	seasoning_bonus = bonus
+	_flash_seasoned(spice_color)
+
+
+# --- scoring ---
+
+## 0..1 contribution to a dish: low if under-prepped (steps left undone),
+## otherwise the average of the skill scores earned across its prep steps.
+## Seasoning always adds on top, capped at 1.0 — it only ever helps.
+func quality_value() -> float:
+	var base := 0.3
+	if is_fully_prepped():
+		if _prep_scores.is_empty():
+			base = 0.8
+		else:
+			var total := 0.0
+			for score in _prep_scores.values():
+				total += score
+			base = total / _prep_scores.size()
+	return clampf(base + seasoning_bonus, 0.0, 1.0)
+
+
+## Multi-line summary for the inspect panel. "" means nothing to show.
+## Plate/Spice override this with their own shape.
+func get_inspect_text() -> String:
+	if item_type == "":
+		return ""
+	var lines := [item_type.to_upper()]
+	if not _steps.is_empty():
+		lines.append("Prep: %d/%d steps done" % [_step_index, _steps.size()])
+	if has_step(Ingredients.Verb.CHOP):
+		lines.append("Chop: %s" % current_chop_band().capitalize())
+	if has_step(Ingredients.Verb.COOK):
+		lines.append("Cook: %s" % current_cook_band().capitalize())
+	if seasoned:
+		lines.append("Seasoned +%d%%" % int(round(seasoning_bonus * 100)))
+	lines.append("Quality: %d%%" % int(round(quality_value() * 100)))
+	return "\n".join(lines)
+
+
+## Whichever representation is currently on screen — the whole mesh, or the
+## diced pieces once chopped. Punch/flip animations act on this.
+func _active_visual() -> Node3D:
+	return _pieces if _pieces.visible else _mesh
+
+
+func _update_visual_state() -> void:
+	# Whole vs diced tells prep state at a glance; switches the moment
+	# chopping starts (not just once it's finished) for real-time feedback
+	# while holding. The cook tint layers on top (shared material, so it
+	# applies to both automatically).
+	var chopped := step_done(Ingredients.Verb.CHOP) or chop_progress > 0.0
+	_mesh.visible = not chopped
+	_pieces.visible = chopped
+
+
+## Quick squash-and-settle, used whenever a step completes with a visible
+## change (chopping into pieces) or a shaker lands a seasoning hit.
+func _punch(node: Node3D) -> void:
+	var base_scale := node.scale
+	var tween := create_tween()
+	tween.tween_property(node, "scale", base_scale * 1.25, 0.08)
+	tween.tween_property(node, "scale", base_scale, 0.12)
+
+
+func _flash_seasoned(spice_color: Color) -> void:
+	# Physical flecks in the spice's own color read as "seasoned" at a
+	# glance, no abstract glow needed. A punch-scale reads as the shake itself.
+	var mark_mat := StandardMaterial3D.new()
+	mark_mat.albedo_color = spice_color
+	for mark in _season_marks.get_children():
+		(mark as MeshInstance3D).material_override = mark_mat
+	_season_marks.visible = true
+	_punch(_active_visual())
+
+
+## A quick rotate-and-hop, used by CookStation when the flip window is caught.
+func flip_visual() -> void:
+	var visual := _active_visual()
+	var start_y := visual.position.y
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(visual, "rotation:x", visual.rotation.x + TAU, 0.35)
+	tween.tween_property(visual, "position:y", start_y + 0.1, 0.17).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_property(visual, "position:y", start_y, 0.18).set_ease(Tween.EASE_IN)
 
 
 func _update_tint() -> void:
-	if not cookable:
-		_mat.albedo_color = color
-		return
-	# Raw reads as a washed-out version of the item's color; it saturates to
-	# the full color right as it hits done (doneness 1.0 = top of Perfect),
-	# then darkens to charcoal as it burns. Peak appetising == peak score.
-	var pale := color.lerp(Color(0.90, 0.85, 0.80), 0.55)
-	var cooked: Color
-	if doneness <= 1.0:
-		cooked = pale.lerp(color, clampf(doneness, 0.0, 1.0))
+	# Only chopped, cookable items show the cook tint (pale raw → rich at done
+	# → charcoal burnt). Everything else shows its base color.
+	if has_step(Ingredients.Verb.COOK) and step_done(Ingredients.Verb.CHOP):
+		var pale := color.lerp(Color(0.90, 0.85, 0.80), 0.55)
+		var cooked: Color
+		if doneness <= 1.0:
+			cooked = pale.lerp(color, clampf(doneness, 0.0, 1.0))
+		else:
+			var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
+			cooked = color.lerp(Color(0.08, 0.07, 0.06), char_t)
+		_mat.albedo_color = cooked
 	else:
-		var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
-		cooked = color.lerp(Color(0.08, 0.07, 0.06), char_t)
-	_mat.albedo_color = cooked
+		_mat.albedo_color = color
 
 
 func attach_to(new_parent: Node3D) -> void:

@@ -22,3 +22,24 @@ func remove_highlight() -> void:
 
 func interact(_player: Player) -> void:
 	pass
+
+
+## Called every frame while a targeting player holds interact. Stations that
+## need continuous input (e.g. the cutting board) override this.
+func interact_hold(_player: Player, _delta: float) -> void:
+	pass
+
+
+## Tap-triggered "skill move" — the opt-in timing mechanic a station offers,
+## if any (currently just the stove's flip catch). Kept on a separate button
+## from interact so a normal pick-up/put-down action never gets silently
+## reinterpreted as a timing attempt. Does nothing where there's no such
+## mechanic.
+func action(_player: Player) -> void:
+	pass
+
+
+## Multi-line summary for the inspect panel. "" (the default) means nothing
+## extra to show beyond what's already visible in the world.
+func get_inspect_text() -> String:
+	return ""

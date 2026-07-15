@@ -7,6 +7,9 @@
 [ext_resource type="PackedScene" path="res://stations/plate_stack.tscn" id="5_plates"]
 [ext_resource type="PackedScene" path="res://stations/serve_station.tscn" id="6_serve"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="7_hud"]
+[ext_resource type="PackedScene" path="res://stations/cutting_board.tscn" id="8_board"]
+[ext_resource type="PackedScene" path="res://stations/spice_rack.tscn" id="9_spice_rack"]
+[ext_resource type="PackedScene" path="res://ui/inspect_panel.tscn" id="10_inspect"]
 
 [sub_resource type="Environment" id="environment"]
 background_mode = 1
@@ -119,25 +122,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, -3.5)
 [node name="CounterN5" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -3.5)
 
-[node name="IslandW" parent="Counters" instance=ExtResource("2_counter")]
+[node name="BoardW" parent="Counters" instance=ExtResource("8_board")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, 0.5)
 
 [node name="IslandC" parent="Counters" instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.5)
 
-[node name="IslandE" parent="Counters" instance=ExtResource("2_counter")]
+[node name="BoardE" parent="Counters" instance=ExtResource("8_board")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, 0.5)
 
 [node name="TomatoCrate" parent="Counters" instance=ExtResource("3_crate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, -1)
 item_type = "tomato"
-item_color = Color(0.85, 0.2, 0.15, 1)
-item_cookable = true
 
 [node name="CheeseCrate" parent="Counters" instance=ExtResource("3_crate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, 1)
 item_type = "cheese"
-item_color = Color(0.95, 0.8, 0.25, 1)
 
 [node name="StoveA" parent="Counters" instance=ExtResource("4_cook")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, -3)
@@ -148,10 +148,34 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, 3)
 [node name="PlateStack" parent="Counters" instance=ExtResource("5_plates")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.45, -3.5)
 
+[node name="SpiceRackPepper" parent="Counters" instance=ExtResource("9_spice_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.45, 0.45, -1)
+spice_type = "pepper"
+shaker_color = Color(0.32, 0.27, 0.22, 1)
+
+[node name="SpiceRackBasil" parent="Counters" instance=ExtResource("9_spice_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.45, 0.45, 1)
+spice_type = "basil"
+shaker_color = Color(0.22, 0.42, 0.18, 1)
+
+[node name="BreadCrate" parent="Counters" instance=ExtResource("3_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.45, 0.45, -3)
+item_type = "bread"
+
 [node name="ServeStation" parent="." instance=ExtResource("6_serve")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 2.8)
 
 [node name="HUD" parent="." instance=ExtResource("7_hud")]
+
+[node name="InspectPanelP1" parent="." instance=ExtResource("10_inspect")]
+player_id = 1
+
+[node name="InspectPanelP2" parent="." instance=ExtResource("10_inspect")]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_right = -24.0
+player_id = 2
 
 [node name="Player1" parent="." unique_id=743813322 instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.05, 2)
