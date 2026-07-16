@@ -28,6 +28,10 @@ const _TAP_GRACE := 0.15
 
 var _pending_take_player: Player = null
 var _press_elapsed := 0.0
+## Set by interact_hold whenever a real chop happens this frame; the gauge
+## is only ever visible while that's true — an item just sitting there
+## between cuts shows no gauge, only actively cutting does.
+var _chopped_this_frame := false
 
 const _BAND_COLORS := {
 	"undercut": Color(0.90, 0.50, 0.20),
@@ -72,10 +76,17 @@ func interact_hold(player: Player, delta: float) -> void:
 		# for real from this point on.
 		_pending_take_player = null
 	held_item.chop(delta, 1.0 / chop_duration)
+	_chopped_this_frame = true
 	_update_gauge()
 
 
 func _process(_delta: float) -> void:
+	# Physics (where interact_hold runs) always finishes before this frame
+	# callback, so the flag reliably reflects whether a real chop happened
+	# this frame — visible only while actually cutting, not just resting.
+	_gauge.visible = _chopped_this_frame
+	_chopped_this_frame = false
+
 	if _pending_take_player == null:
 		return
 	var p := _pending_take_player
@@ -83,12 +94,6 @@ func _process(_delta: float) -> void:
 		# Released before the grace window elapsed — a genuine quick tap.
 		_pending_take_player = null
 		super.interact(p)
-
-
-func _on_item_placed(item: Item) -> void:
-	_gauge.visible = _can_chop(item)
-	if _gauge.visible:
-		_update_gauge()
 
 
 func _on_item_removed(item: Item) -> void:

@@ -49,13 +49,15 @@ func interact(player: Player) -> void:
 			spice.consume_use()
 	elif carried is OrderTicket and held_item is Plate:
 		# Carrying an order ticket, station holds a plate: tag it. The ticket
-		# is consumed — its job was just to carry the dish name over.
-		(held_item as Plate).tag_order((carried as OrderTicket).dish)
+		# is consumed — its job was just to carry the order over.
+		var ticket := carried as OrderTicket
+		(held_item as Plate).tag_order(ticket.dish, ticket.table_label())
 		player.drop_item()
 		carried.queue_free()
 	elif held_item is OrderTicket and carried is Plate:
 		# Station holds a ticket, carrying a plate: same tag, other direction.
-		(carried as Plate).tag_order((held_item as OrderTicket).dish)
+		var ticket := held_item as OrderTicket
+		(carried as Plate).tag_order(ticket.dish, ticket.table_label())
 		held_item.queue_free()
 		held_item = null
 

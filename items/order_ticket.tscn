@@ -8,6 +8,7 @@ size = Vector3(0.22, 0.02, 0.16)
 [node name="OrderTicket" type="Node3D"]
 script = ExtResource("1_script")
 color = Color(0.95, 0.93, 0.85, 1)
+table_number = 0
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
@@ -18,13 +19,3 @@ visible = false
 
 [node name="SeasonMarks" type="Node3D" parent="."]
 visible = false
-
-[node name="Label" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
-billboard = 1
-no_depth_test = true
-fixed_size = true
-pixel_size = 0.0006
-font_size = 44
-outline_size = 12
-text = ""

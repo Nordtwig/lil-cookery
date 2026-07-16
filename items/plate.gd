@@ -4,9 +4,9 @@ extends Item
 ## A carryable plate that holds components. It flows through the normal carry
 ## / slot machinery (it's an Item) but is never cookable. Components added to
 ## it are reparented onto the plate at fixed mount points. Which recipe it's
-## scored against is always decided by whoever evaluates it (the ServeStation,
-## based on the current order) — an optional order tag (see tag_order below)
-## is purely a player-facing display aid and never overrides that.
+## scored against is always decided by whoever evaluates it (the Table it's
+## delivered to, based on that table's live order) — an optional order tag (see
+## tag_order below) is purely a player-facing display aid and never overrides that.
 
 # Components arrange themselves by layout (see _relayout), not fixed mounts.
 # A tagged plate uses its recipe's authored layout and re-sorts components
@@ -21,6 +21,7 @@ const _FAN_Y := 0.09
 
 var components: Array[Item] = []
 var _tagged_dish := ""
+var _tagged_table := ""
 
 @onready var _checklist: Label3D = $Checklist
 @onready var _checklist_bg: MeshInstance3D = $ChecklistBG
@@ -53,11 +54,24 @@ func add_component(item: Item) -> void:
 ## Tag this plate with an order (from a carried OrderTicket). Purely a
 ## display aid — shows a live checklist of the dish's required components as
 ## they're added, but never affects scoring; evaluate() always scores
-## against whatever's explicitly passed to it.
-func tag_order(dish: String) -> void:
+## against whatever's explicitly passed to it. `table_label` (e.g. "T2") is an
+## optional prefix so a plate reads as belonging to a specific table.
+func tag_order(dish: String, table_label: String = "") -> void:
 	_tagged_dish = dish
+	_tagged_table = table_label
 	_relayout()
 	_update_checklist()
+
+
+## Clears the order tag once a plate has been served — the live checklist was
+## only ever useful while building the dish, not once it's sitting in front of
+## a customer. Leaves the plated arrangement exactly as it was; only the
+## checklist display goes away.
+func clear_tag() -> void:
+	_tagged_dish = ""
+	_tagged_table = ""
+	_checklist.visible = false
+	_checklist_bg.visible = false
 
 
 ## Re-position every component for the current layout. Tagged: the recipe's
@@ -116,7 +130,10 @@ func _update_checklist() -> void:
 	var need := {}
 	for type in Recipes.required_for(_tagged_dish):
 		need[type] = need.get(type, 0) + 1
-	var lines := [_tagged_dish.to_upper()]
+	var header := _tagged_dish.to_upper()
+	if _tagged_table != "":
+		header = "%s · %s" % [_tagged_table, header]
+	var lines := [header]
 	var listed := {}
 	for type in Recipes.required_for(_tagged_dish):
 		if listed.has(type):
@@ -205,7 +222,10 @@ func evaluate(required: Array, base_type: String = "") -> Dictionary:
 func get_inspect_text() -> String:
 	var header := "PLATE"
 	if _tagged_dish != "":
-		header += " — %s" % _tagged_dish.to_upper()
+		header += " — "
+		if _tagged_table != "":
+			header += "%s · " % _tagged_table
+		header += _tagged_dish.to_upper()
 	if components.is_empty():
 		return header + " (empty)"
 	var lines := [header]
