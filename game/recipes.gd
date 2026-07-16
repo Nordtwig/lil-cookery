@@ -14,7 +14,7 @@ class_name Recipes
 
 const DEFS := {
 	"caprese": {"components": ["tomato", "cheese"], "layout": "fan"},
-	"bruschetta": {"components": ["bread", "tomato"], "layout": "stack"},
+	"bruschetta": {"components": ["toasted_bread", "tomato"], "layout": "stack"},
 	"burger": {"components": ["bread", "meat", "lettuce", "bread"], "base": "bread", "layout": "stack"},
 }
 

@@ -26,9 +26,16 @@ const DEFS := {
 		"scene": "res://items/cheese.tscn",
 	},
 	"bread": {
-		"color": Color(0.82, 0.62, 0.36),  # toasts pale tan -> golden -> charred
-		"steps": [Verb.CHOP, Verb.COOK],  # sliced, then toasted
+		"color": Color(0.82, 0.62, 0.36),  # bakes pale tan -> golden -> charred
+		"steps": [Verb.COOK],  # baked whole on the stove — no chopping at all
 		"scene": "res://items/bread.tscn",
+		"yield": 4,  # one loaf bakes into 4 usable slices
+		"toasts_into": "toasted_bread",  # a second cook pass toasts a slice, for bruschetta
+	},
+	"toasted_bread": {
+		"color": Color(0.62, 0.40, 0.20),  # a deeper golden-brown than plain baked bread
+		"steps": [Verb.COOK],  # never dispensed fresh — only reached via transform_into
+		"scene": "res://items/bread.tscn",  # same slice geometry, only the tint differs
 	},
 	"meat": {
 		"color": Color(0.72, 0.34, 0.33),  # raw pink -> seared brown -> charred
@@ -39,6 +46,7 @@ const DEFS := {
 		"color": Color(0.48, 0.72, 0.32),
 		"steps": [Verb.CHOP],
 		"scene": "res://items/lettuce.tscn",
+		"yield": 4,  # one head chops into 4 scraps
 	},
 }
 
@@ -54,3 +62,19 @@ static func color_for(type: String) -> Color:
 ## The scene to instantiate for an ingredient of this type.
 static func scene_for(type: String) -> PackedScene:
 	return load(DEFS.get(type, {}).get("scene", _FALLBACK_SCENE))
+
+
+## How many usable pieces one whole ingredient's relevant step (whichever
+## verb splits it — see YieldStation) yields. Most ingredients are 1 (prep
+## just refines the single item in place); a few (bread, lettuce) split into
+## several independent pieces.
+static func yield_for(type: String) -> int:
+	return DEFS.get(type, {}).get("yield", 1)
+
+
+## The ingredient type a *second* cook pass transforms this one into (e.g.
+## plain baked bread -> toasted_bread), or "" if re-cooking this type never
+## changes what it is — just its score, as usual. See CookStation and
+## Item.transform_into.
+static func toasts_into(type: String) -> String:
+	return DEFS.get(type, {}).get("toasts_into", "")

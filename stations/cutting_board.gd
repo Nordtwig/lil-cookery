@@ -22,9 +22,20 @@ extends SlotStation
 ## take is cancelled and chopping starts for real from that point on — so
 ## pressing-and-holding always resumes cutting cleanly, and a quick tap never
 ## leaves so much as a trace of progress behind.
+##
+## Yield ingredients (Ingredients.yield_for) that split on CHOP (currently
+## just lettuce — bread now splits on COOK, on the stove, see SlotStation
+## and CookStation) split into several pieces the first time their chop
+## completes: one piece goes straight to whoever pulled it, the rest sits in
+## the slot as an IngredientBundle. That bundle's own tap-peels/hold-takes-
+## all behavior lives in SlotStation (shared by every station, not just this
+## one — a batch keeps offering pieces wherever it's relocated to); this
+## class only needs to make sure a still-in-progress raw item's own
+## take-vs-chop disambiguation runs first, falling through to SlotStation
+## for the bundle case otherwise.
 
 @export var chop_duration := 2.0  # seconds for chop_progress to reach 1.0 (top of Perfect)
-const _TAP_GRACE := 0.15
+# _TAP_GRACE is inherited from SlotStation — same grace window, one constant.
 
 var _pending_take_player: Player = null
 var _press_elapsed := 0.0
@@ -61,23 +72,24 @@ func interact(player: Player) -> void:
 		_pending_take_player = player
 		_press_elapsed = 0.0
 		return
-	super.interact(player)
+	super.interact(player)  # SlotStation handles a leftover bundle, if any
 
 
 func interact_hold(player: Player, delta: float) -> void:
-	if not _is_chopping():
+	if _is_chopping():
+		if _pending_take_player == player:
+			_press_elapsed += delta
+			if _press_elapsed < _TAP_GRACE:
+				return  # still uncertain whether this is a tap or a hold — no progress yet
+			# Held long enough to be a genuine hold, not a tap — cancel the
+			# pending take (releasing later won't also take the item) and
+			# start chopping for real from this point on.
+			_pending_take_player = null
+		held_item.chop(delta, 1.0 / chop_duration)
+		_chopped_this_frame = true
+		_update_gauge()
 		return
-	if _pending_take_player == player:
-		_press_elapsed += delta
-		if _press_elapsed < _TAP_GRACE:
-			return  # still uncertain whether this is a tap or a hold — no progress yet
-		# Held long enough to be a genuine hold, not a tap — cancel the pending
-		# take (releasing later won't also take the item) and start chopping
-		# for real from this point on.
-		_pending_take_player = null
-	held_item.chop(delta, 1.0 / chop_duration)
-	_chopped_this_frame = true
-	_update_gauge()
+	super.interact_hold(player, delta)  # SlotStation handles a bundle-hold, if any
 
 
 func _process(_delta: float) -> void:
@@ -87,19 +99,29 @@ func _process(_delta: float) -> void:
 	_gauge.visible = _chopped_this_frame
 	_chopped_this_frame = false
 
-	if _pending_take_player == null:
+	if _pending_take_player != null:
+		var p := _pending_take_player
+		if not Input.is_action_pressed("p%d_interact" % p.player_id):
+			# Released before the grace window elapsed — a genuine quick tap.
+			_pending_take_player = null
+			super.interact(p)
 		return
-	var p := _pending_take_player
-	if not Input.is_action_pressed("p%d_interact" % p.player_id):
-		# Released before the grace window elapsed — a genuine quick tap.
-		_pending_take_player = null
-		super.interact(p)
+	super._process(_delta)  # let SlotStation resolve its own pending bundle-take, if any
 
 
-func _on_item_removed(item: Item) -> void:
+## First-time chop completion of a yield ingredient (Ingredients.yield_for >
+## 1) splits into pieces via SlotStation._split_if_yield. Everything else —
+## a resumed re-chop, a yield-1 ingredient — passes through unchanged.
+func _on_item_removed(item: Item) -> Item:
 	_gauge.visible = false
-	if _can_chop(item):
-		item.lock_in_chop_score(item.chop_score())
+	if not _can_chop(item):
+		return item
+	var was_first_chop := not item.step_done(Ingredients.Verb.CHOP)
+	var score := item.chop_score()
+	item.lock_in_chop_score(score)
+	if not was_first_chop:
+		return item
+	return _split_if_yield(item, score)
 
 
 func _is_chopping() -> bool:

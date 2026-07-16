@@ -98,9 +98,24 @@ func complete_step(score: float) -> void:
 
 # --- COOK step ---
 
+## True once this specific Item instance has actually been through cook()
+## itself, at least once — as opposed to `doneness` merely being pre-stamped
+## on it (a yield ingredient's split-off piece inherits a visual doneness
+## matching how well the batch baked, so it doesn't look freshly-raw, but it
+## has never personally been cooked). Lets the very first real cook() call
+## on such a piece start its own live doneness fresh — e.g. toasting an
+## already-baked bread slice plays out as a genuine cook, not an instant
+## burn from picking up wherever the loaf's bake left off — while a normal
+## resumed cook (same instance, pulled and placed again) is unaffected,
+## since by then this is already true and doneness legitimately continues.
+var _cook_started := false
+
 ## Advance cooking by `delta` at the given rate (doneness/sec), re-tinting.
 ## Caps at Burnt so an abandoned item settles at low value, never vanishes.
 func cook(delta: float, rate: float) -> void:
+	if not _cook_started:
+		_cook_started = true
+		doneness = 0.0
 	doneness = minf(doneness + rate * delta, BURNT_CAP)
 	_update_tint()
 
@@ -201,6 +216,18 @@ func is_unmodified() -> bool:
 	return _prep_scores.is_empty() and chop_progress == 0.0 and doneness == 0.0 and not seasoned
 
 
+## Changes this item's ingredient type in place (e.g. a re-cooked bread slice
+## becoming toasted bread — see Ingredients.toasts_into) — updates its base
+## color and re-tints immediately using the current doneness, so a
+## well-toasted vs. burnt slice still reads differently. Doesn't touch
+## prep-chain state; only meant for an item that's already fully prepped
+## under its old type.
+func transform_into(new_type: String) -> void:
+	item_type = new_type
+	color = Ingredients.color_for(new_type)
+	_update_tint()
+
+
 # --- scoring ---
 
 ## 0..1 contribution to a dish: low if under-prepped (steps left undone),
@@ -224,7 +251,7 @@ func quality_value() -> float:
 func get_inspect_text() -> String:
 	if item_type == "":
 		return ""
-	var lines := [item_type.to_upper()]
+	var lines := [item_type.capitalize().to_upper()]  # "toasted_bread" -> "TOASTED BREAD"
 	if not _steps.is_empty():
 		lines.append("Prep: %d/%d steps done" % [_step_index, _steps.size()])
 	if has_step(Ingredients.Verb.CHOP):
@@ -252,6 +279,15 @@ func _update_visual_state() -> void:
 	var chopped := chop_progress >= CHOP_PIECES_AT
 	_mesh.visible = not chopped
 	_pieces.visible = chopped
+
+
+## Re-applies mesh/tint from the current chop_progress/doneness — for when
+## something external sets those fields directly rather than through
+## chop()/cook() (e.g. IngredientBundle borrowing this item's "already cut"
+## look for its own decorative display, see IngredientBundle._ready).
+func refresh_visual() -> void:
+	_update_visual_state()
+	_update_tint()
 
 
 ## Quick squash-and-settle, used whenever a step completes with a visible

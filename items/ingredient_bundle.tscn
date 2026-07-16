@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://items/ingredient_bundle.gd" id="1_script"]
+
+[sub_resource type="CylinderMesh" id="bundle_mesh"]
+top_radius = 0.14
+bottom_radius = 0.17
+height = 0.09
+
+[node name="IngredientBundle" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.045, 0)
+mesh = SubResource("bundle_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
