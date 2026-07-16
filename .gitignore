@@ -2,3 +2,6 @@
 .godot/
 /android/
 /.lil-cookery-notes/
+
+# Exported builds — regenerated locally, shouldn't bloat the repo
+/builds/
