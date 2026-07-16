@@ -27,6 +27,12 @@ const CHOP_GOOD_MAX := 0.8
 const CHOP_PERFECT_MAX := 1.05
 const CHOP_OVERCUT_CAP := 1.25
 
+## The whole mesh swaps to diced pieces partway through cutting, not the instant
+## the knife touches it — otherwise placing an item on a board while still
+## holding interact pops it straight to pieces. Roughly halfway (the
+## undercut/good boundary), about when the stove's flip window opens.
+const CHOP_PIECES_AT := 0.5
+
 ## How far the COOK step has progressed. Also drives the cooked tint.
 var doneness := 0.0
 ## How far the CHOP step has progressed.
@@ -238,11 +244,12 @@ func _active_visual() -> Node3D:
 
 
 func _update_visual_state() -> void:
-	# Whole vs diced tells prep state at a glance; switches the moment
-	# chopping starts (not just once it's finished) for real-time feedback
-	# while holding. The cook tint layers on top (shared material, so it
-	# applies to both automatically).
-	var chopped := step_done(Ingredients.Verb.CHOP) or chop_progress > 0.0
+	# Whole vs diced tells prep state at a glance; swaps once cutting is roughly
+	# halfway (CHOP_PIECES_AT), not the instant the knife touches it, so an item
+	# placed on a board while interact is still held doesn't pop to pieces
+	# immediately. chop_progress persists, so a resumed/pulled item stays diced.
+	# The cook tint layers on top (shared material, applies to both).
+	var chopped := chop_progress >= CHOP_PIECES_AT
 	_mesh.visible = not chopped
 	_pieces.visible = chopped
 

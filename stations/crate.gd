@@ -10,8 +10,6 @@ extends Station
 ## still-unmodified ingredient and interacting instead puts it back — undoes
 ## the dispense, no cost, no delay, since nothing was actually spent on it.
 
-const ITEM_SCENE := preload("res://items/item.tscn")
-
 @export var item_type := "tomato"
 @export var max_stock := 8
 @export var restock_cost := 6
@@ -36,7 +34,7 @@ func interact(player: Player) -> void:
 		if stock <= 0:
 			_try_restock()
 			return
-		var item: Item = ITEM_SCENE.instantiate()
+		var item: Item = Ingredients.scene_for(item_type).instantiate()
 		item.item_type = item_type
 		player.take_item(item)
 		stock -= 1

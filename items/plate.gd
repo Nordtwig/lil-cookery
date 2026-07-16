@@ -8,12 +8,16 @@ extends Item
 ## based on the current order) — an optional order tag (see tag_order below)
 ## is purely a player-facing display aid and never overrides that.
 
-const _MOUNTS := [
-	Vector3(-0.10, 0.05, 0.02),
-	Vector3(0.10, 0.05, -0.02),
-	Vector3(0.0, 0.05, 0.12),
-	Vector3(0.0, 0.05, -0.12),
-]
+# Components arrange themselves by layout (see _relayout), not fixed mounts.
+# A tagged plate uses its recipe's authored layout and re-sorts components
+# into the dish's canonical order (so a burger built out of order still snaps
+# into a proper stack); an untagged plate falls back to a plain stack in
+# plating order.
+const MAX_COMPONENTS := 6
+const _STACK_BASE_Y := 0.09
+const _STACK_DY := 0.05
+const _FAN_SPACING := 0.13
+const _FAN_Y := 0.09
 
 var components: Array[Item] = []
 var _tagged_dish := ""
@@ -27,7 +31,7 @@ var _tagged_dish := ""
 ## what stops a carried shaker from getting glued onto a plate as clutter
 ## instead of falling through to the seasoning branch in SlotStation.
 func can_add(item: Item) -> bool:
-	return item.item_type != "" and components.size() < _MOUNTS.size()
+	return item.item_type != "" and components.size() < MAX_COMPONENTS
 
 
 ## Overrides Item's chop/cook/season-based definition — a plate's own
@@ -39,11 +43,10 @@ func is_unmodified() -> bool:
 
 
 func add_component(item: Item) -> void:
-	var idx := components.size()
 	item.attach_to(self)
-	item.position = _MOUNTS[idx]
 	item.scale = Vector3.ONE * 0.7
 	components.append(item)
+	_relayout()
 	_update_checklist()
 
 
@@ -53,7 +56,53 @@ func add_component(item: Item) -> void:
 ## against whatever's explicitly passed to it.
 func tag_order(dish: String) -> void:
 	_tagged_dish = dish
+	_relayout()
 	_update_checklist()
+
+
+## Re-position every component for the current layout. Tagged: the recipe's
+## authored layout (stack/fan), with components re-sorted into the dish's
+## canonical order so out-of-order plating still presents correctly. Untagged:
+## a plain stack in plating order. Components slide to their targets rather
+## than snapping, so a late tag visibly re-arranges the plate.
+func _relayout() -> void:
+	var ordered := _arranged_components()
+	var style := Recipes.layout_for(_tagged_dish) if _tagged_dish != "" else "stack"
+	var n := ordered.size()
+	if style == "fan":
+		for i in n:
+			var offset := i - (n - 1) / 2.0
+			_move_component(ordered[i], Vector3(offset * _FAN_SPACING, _FAN_Y, 0.0), offset * 0.2)
+	else:
+		for i in n:
+			_move_component(ordered[i], Vector3(0.0, _STACK_BASE_Y + i * _STACK_DY, 0.0), 0.0)
+
+
+## Components in presentation order. Untagged: plating order as-is. Tagged: the
+## dish's canonical component order (each canonical slot consumes one matching
+## component by type), with any extra/wrong components appended last so they
+## sit on top rather than disturbing the recognizable stack.
+func _arranged_components() -> Array:
+	if _tagged_dish == "":
+		return components.duplicate()
+	var pool := components.duplicate()
+	var arranged := []
+	for type in Recipes.required_for(_tagged_dish):
+		for i in pool.size():
+			if pool[i].item_type == type:
+				arranged.append(pool[i])
+				pool.remove_at(i)
+				break
+	for leftover in pool:
+		arranged.append(leftover)
+	return arranged
+
+
+func _move_component(item: Item, target_pos: Vector3, target_rot_y: float) -> void:
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(item, "position", target_pos, 0.18).set_ease(Tween.EASE_OUT)
+	tween.tween_property(item, "rotation:y", target_rot_y, 0.18)
 
 
 func _update_checklist() -> void:
@@ -63,11 +112,27 @@ func _update_checklist() -> void:
 		return
 	var have := {}
 	for c in components:
-		have[c.item_type] = true
-	var lines := [_tagged_dish.to_upper()]
+		have[c.item_type] = have.get(c.item_type, 0) + 1
+	var need := {}
 	for type in Recipes.required_for(_tagged_dish):
-		var mark := "[x]" if have.has(type) else "[ ]"
-		lines.append("%s %s" % [mark, type.capitalize()])
+		need[type] = need.get(type, 0) + 1
+	var lines := [_tagged_dish.to_upper()]
+	var listed := {}
+	for type in Recipes.required_for(_tagged_dish):
+		if listed.has(type):
+			continue
+		listed[type] = true
+		var h: int = have.get(type, 0)
+		var n: int = need[type]
+		var mark := "[ ]"
+		if h >= n:
+			mark = "[x]"
+		elif h > 0:
+			mark = "[/]"  # partially there (e.g. one of a burger's two buns)
+		var label: String = type.capitalize()
+		if n > 1:
+			label += " (%d/%d)" % [h, n]
+		lines.append("%s %s" % [mark, label])
 	_checklist.text = "\n".join(lines)
 	_checklist.visible = true
 	_checklist_bg.visible = true
@@ -93,7 +158,12 @@ func season_component(bonus: float, spice_color: Color) -> bool:
 ## (e.g. a burger's bun) — plating out of order costs a small penalty, same
 ## forgiving shape as a wrong ingredient, never a hard block.
 func evaluate(required: Array, base_type: String = "") -> Dictionary:
-	var seen := {}
+	# Count-based matching so a legitimately-repeated required component (a
+	# burger's two bread slices) is accepted up to the count the recipe asks
+	# for; a third bread would still count as clutter.
+	var needed := {}
+	for r in required:
+		needed[r] = needed.get(r, 0) + 1
 	var sum := 0.0
 	var matched := 0
 	var wrong := 0
@@ -101,19 +171,19 @@ func evaluate(required: Array, base_type: String = "") -> Dictionary:
 	var first_required_index := -1
 	for i in components.size():
 		var c := components[i]
-		if c.item_type in required and not seen.has(c.item_type):
-			seen[c.item_type] = true
+		if needed.get(c.item_type, 0) > 0:
+			needed[c.item_type] -= 1
 			sum += c.quality_value()
 			matched += 1
 			if first_required_index == -1:
 				first_required_index = i
-			if c.item_type == base_type:
+			if c.item_type == base_type and base_index == -1:
 				base_index = i
 		else:
 			wrong += 1
 
 	var comp_avg := sum / matched if matched > 0 else 0.0
-	var completeness := float(seen.size()) / required.size()
+	var completeness := float(matched) / required.size()
 	var quality := comp_avg * completeness
 	if wrong == 0 and completeness >= 1.0:
 		quality = minf(1.0, quality + 0.05)

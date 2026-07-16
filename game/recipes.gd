@@ -7,12 +7,15 @@ class_name Recipes
 ## design doc's shallow "garnish needs base plated first" dependency). This
 ## is scored, not enforced: plating out of order never blocks anything, it
 ## just costs a small penalty, same forgiving shape as a wrong ingredient.
-## Adding a dish is a one-line edit, same pattern as Ingredients.
+## `components` may repeat a type (a burger's two bread slices — bottom and
+## top bun); evaluate() matches by count. `layout` drives how a tagged plate
+## arranges its components visually, never scoring. Adding a dish is a
+## one-line edit, same pattern as Ingredients.
 
 const DEFS := {
-	"caprese": {"components": ["tomato", "cheese"]},
-	"bruschetta": {"components": ["bread", "tomato"]},
-	"burger": {"components": ["bread", "meat", "lettuce"], "base": "bread"},
+	"caprese": {"components": ["tomato", "cheese"], "layout": "fan"},
+	"bruschetta": {"components": ["bread", "tomato"], "layout": "stack"},
+	"burger": {"components": ["bread", "meat", "lettuce", "bread"], "base": "bread", "layout": "stack"},
 }
 
 
@@ -22,6 +25,12 @@ static func required_for(dish: String) -> Array:
 
 static func base_for(dish: String) -> String:
 	return DEFS.get(dish, {}).get("base", "")
+
+
+## How a tagged plate arranges this dish's components. Display only — never
+## read by scoring. "stack" (default, bottom-to-top) or "fan" (side-by-side).
+static func layout_for(dish: String) -> String:
+	return DEFS.get(dish, {}).get("layout", "stack")
 
 
 static func random_name() -> String:
