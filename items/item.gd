@@ -43,6 +43,16 @@ var chop_progress := 0.0
 var seasoned := false
 var seasoning_bonus := 0.0
 
+## A finished portion (a peeled slice/scrap) carries the quality it inherited
+## from the whole it was cut from, rather than earning it through its own prep
+## chain. -1 means unset (this item earns quality normally). See can_dispense.
+var inherited_quality := -1.0
+
+## For a dispenser ingredient (a loaf, a head — Ingredients.dispenses_for),
+## how many portions are still in it. -1 means "not a dispenser". Initialized
+## in _ready; decremented by a station each time a portion is peeled off.
+var uses_left := -1
+
 var _steps: Array = []
 var _step_index := 0
 var _prep_scores := {}  # Ingredients.Verb -> float (0..1)
@@ -58,10 +68,15 @@ func _ready() -> void:
 	_steps = Ingredients.steps_for(item_type)
 	if item_type != "":
 		color = Ingredients.color_for(item_type)
+	if Ingredients.dispenses_for(item_type) != "":
+		uses_left = Ingredients.uses_for(item_type)
 	_mat = StandardMaterial3D.new()
-	_mesh.material_override = _mat
-	for piece in _pieces.get_children():
-		(piece as MeshInstance3D).material_override = _mat
+	# Tint the whole visual subtree, so a representation built from several
+	# meshes (a portion modeled as a little clump of shreds, not one box) all
+	# takes the food color. SeasonMarks live outside Mesh/Pieces and keep their
+	# own spice-colored material.
+	_tint_tree(_mesh)
+	_tint_tree(_pieces)
 	_update_visual_state()
 	_update_tint()
 
@@ -98,24 +113,9 @@ func complete_step(score: float) -> void:
 
 # --- COOK step ---
 
-## True once this specific Item instance has actually been through cook()
-## itself, at least once — as opposed to `doneness` merely being pre-stamped
-## on it (a yield ingredient's split-off piece inherits a visual doneness
-## matching how well the batch baked, so it doesn't look freshly-raw, but it
-## has never personally been cooked). Lets the very first real cook() call
-## on such a piece start its own live doneness fresh — e.g. toasting an
-## already-baked bread slice plays out as a genuine cook, not an instant
-## burn from picking up wherever the loaf's bake left off — while a normal
-## resumed cook (same instance, pulled and placed again) is unaffected,
-## since by then this is already true and doneness legitimately continues.
-var _cook_started := false
-
 ## Advance cooking by `delta` at the given rate (doneness/sec), re-tinting.
 ## Caps at Burnt so an abandoned item settles at low value, never vanishes.
 func cook(delta: float, rate: float) -> void:
-	if not _cook_started:
-		_cook_started = true
-		doneness = 0.0
 	doneness = minf(doneness + rate * delta, BURNT_CAP)
 	_update_tint()
 
@@ -228,21 +228,40 @@ func transform_into(new_type: String) -> void:
 	_update_tint()
 
 
+# --- dispensing ---
+
+## True if this is a dispenser type at all (a loaf, a head) — regardless of
+## whether it's been prepped yet.
+func is_dispenser() -> bool:
+	return Ingredients.dispenses_for(item_type) != ""
+
+
+## True if this dispenser is ready to peel a portion off right now: it's a
+## dispenser, its own prep step (baking a loaf, chopping a head) is done, and
+## it still has portions left. A raw loaf/head can't be sliced.
+func can_dispense() -> bool:
+	return is_dispenser() and is_fully_prepped() and uses_left > 0
+
+
 # --- scoring ---
 
-## 0..1 contribution to a dish: low if under-prepped (steps left undone),
-## otherwise the average of the skill scores earned across its prep steps.
+## 0..1 contribution to a dish. A peeled portion returns the quality it
+## inherited from its whole; otherwise it's low if under-prepped (steps left
+## undone), else the average of the skill scores earned across its prep steps.
 ## Seasoning always adds on top, capped at 1.0 — it only ever helps.
 func quality_value() -> float:
-	var base := 0.3
-	if is_fully_prepped():
-		if _prep_scores.is_empty():
-			base = 0.8
-		else:
-			var total := 0.0
-			for score in _prep_scores.values():
-				total += score
-			base = total / _prep_scores.size()
+	var base: float
+	if inherited_quality >= 0.0:
+		base = inherited_quality
+	elif not is_fully_prepped():
+		base = 0.3
+	elif _prep_scores.is_empty():
+		base = 0.8
+	else:
+		var total := 0.0
+		for score in _prep_scores.values():
+			total += score
+		base = total / _prep_scores.size()
 	return clampf(base + seasoning_bonus, 0.0, 1.0)
 
 
@@ -264,6 +283,16 @@ func get_inspect_text() -> String:
 	return "\n".join(lines)
 
 
+## Assign the food material to every MeshInstance3D in `root`'s subtree (the
+## node itself if it's one, plus any children), so multi-mesh representations
+## tint uniformly.
+func _tint_tree(root: Node) -> void:
+	if root is MeshInstance3D:
+		(root as MeshInstance3D).material_override = _mat
+	for child in root.get_children():
+		_tint_tree(child)
+
+
 ## Whichever representation is currently on screen — the whole mesh, or the
 ## diced pieces once chopped. Punch/flip animations act on this.
 func _active_visual() -> Node3D:
@@ -283,8 +312,7 @@ func _update_visual_state() -> void:
 
 ## Re-applies mesh/tint from the current chop_progress/doneness — for when
 ## something external sets those fields directly rather than through
-## chop()/cook() (e.g. IngredientBundle borrowing this item's "already cut"
-## look for its own decorative display, see IngredientBundle._ready).
+## chop()/cook().
 func refresh_visual() -> void:
 	_update_visual_state()
 	_update_tint()
@@ -325,7 +353,9 @@ func _update_tint() -> void:
 	# Cookable items show the cook tint (pale raw → rich at done → charcoal
 	# burnt) once any prior CHOP step is out of the way — or immediately, for
 	# an ingredient like meat that skips chopping and goes straight to the
-	# stove. Everything else shows its base color.
+	# stove. A finished portion that's toastable (a bread slice) instead darkens
+	# from its own base toward the toasted color as it cooks — a fresh cook on
+	# its own clock, base-colored at rest. Everything else shows its base color.
 	var chop_clear := not has_step(Ingredients.Verb.CHOP) or step_done(Ingredients.Verb.CHOP)
 	if has_step(Ingredients.Verb.COOK) and chop_clear:
 		var pale := color.lerp(Color(0.90, 0.85, 0.80), 0.55)
@@ -336,6 +366,15 @@ func _update_tint() -> void:
 			var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
 			cooked = color.lerp(Color(0.08, 0.07, 0.06), char_t)
 		_mat.albedo_color = cooked
+	elif Ingredients.toasts_into(item_type) != "" and doneness > 0.0:
+		var toasted := Ingredients.color_for(Ingredients.toasts_into(item_type))
+		var shade: Color
+		if doneness <= 1.0:
+			shade = color.lerp(toasted, clampf(doneness, 0.0, 1.0))
+		else:
+			var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
+			shade = toasted.lerp(Color(0.08, 0.07, 0.06), char_t)
+		_mat.albedo_color = shade
 	else:
 		_mat.albedo_color = color
 

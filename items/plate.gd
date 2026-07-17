@@ -30,9 +30,11 @@ var _tagged_table := ""
 ## Only real ingredients (item_type != "") count as platable components —
 ## this naturally excludes both another Plate and a Spice shaker, which is
 ## what stops a carried shaker from getting glued onto a plate as clutter
-## instead of falling through to the seasoning branch in SlotStation.
+## instead of falling through to the seasoning branch in SlotStation. A
+## dispenser (a whole loaf/head) is excluded too — you plate its peeled
+## portions, never the batch itself.
 func can_add(item: Item) -> bool:
-	return item.item_type != "" and components.size() < MAX_COMPONENTS
+	return item.item_type != "" and not item.is_dispenser() and components.size() < MAX_COMPONENTS
 
 
 ## Overrides Item's chop/cook/season-based definition — a plate's own

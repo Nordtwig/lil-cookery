@@ -1,59 +1,47 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://items/item.gd" id="1_script"]
 
-[sub_resource type="SphereMesh" id="whole_mesh"]
-radius = 0.14
-height = 0.24
-
-[sub_resource type="BoxMesh" id="piece_mesh"]
-size = Vector3(0.03, 0.02, 0.14)
+[sub_resource type="BoxMesh" id="strip_mesh"]
+size = Vector3(0.03, 0.018, 0.14)
 
 [sub_resource type="BoxMesh" id="mark_mesh"]
-size = Vector3(0.05, 0.05, 0.05)
+size = Vector3(0.035, 0.035, 0.035)
 
 [node name="Lettuce" type="Node3D"]
 script = ExtResource("1_script")
 item_type = "lettuce"
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
-mesh = SubResource("whole_mesh")
+transform = Transform3D(0.985, 0, -0.174, 0, 1, 0, 0.174, 0, 0.985, 0, 0.018, 0)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip2" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(0.906, 0, 0.423, 0, 1, 0, -0.423, 0, 0.906, 0.028, 0, 0.01)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip3" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(0.819, 0, -0.574, 0, 1, 0, 0.574, 0, 0.819, -0.026, 0, -0.012)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip4" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(0.966, 0, 0.259, 0, 1, 0, -0.259, 0, 0.966, 0.004, 0.016, 0.004)
+mesh = SubResource("strip_mesh")
 
 [node name="Pieces" type="Node3D" parent="."]
 visible = false
-
-[node name="Piece1" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(0.866, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866, -0.06, 0.02, -0.03)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece2" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(0.966, 0, -0.259, 0, 1, 0, 0.259, 0, 0.966, 0.05, 0.02, -0.05)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece3" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(0.707, 0, 0.707, 0, 1, 0, -0.707, 0, 0.707, -0.02, 0.02, 0.02)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece4" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(0.906, 0, 0.423, 0, 1, 0, -0.423, 0, 0.906, 0.07, 0.02, 0.04)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece5" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(0.819, 0, -0.574, 0, 1, 0, 0.574, 0, 0.819, -0.07, 0.02, 0.07)
-mesh = SubResource("piece_mesh")
 
 [node name="SeasonMarks" type="Node3D" parent="."]
 visible = false
 
 [node name="Mark1" type="MeshInstance3D" parent="SeasonMarks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.2, -0.03)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03, 0.05, -0.02)
 mesh = SubResource("mark_mesh")
 
 [node name="Mark2" type="MeshInstance3D" parent="SeasonMarks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.04, 0.22, 0.02)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 0.05, 0.02)
 mesh = SubResource("mark_mesh")
 
 [node name="Mark3" type="MeshInstance3D" parent="SeasonMarks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, 0.23, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.04)
 mesh = SubResource("mark_mesh")

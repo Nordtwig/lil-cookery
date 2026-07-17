@@ -1,0 +1,71 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://items/item.gd" id="1_script"]
+
+[sub_resource type="SphereMesh" id="head_mesh"]
+radius = 0.14
+height = 0.24
+
+[sub_resource type="BoxMesh" id="strip_mesh"]
+size = Vector3(0.035, 0.02, 0.16)
+
+[sub_resource type="BoxMesh" id="mark_mesh"]
+size = Vector3(0.04, 0.04, 0.04)
+
+[node name="LettuceHead" type="Node3D"]
+script = ExtResource("1_script")
+item_type = "lettuce_head"
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+mesh = SubResource("head_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="Strip1" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.94, 0, -0.34, 0, 1, 0, 0.34, 0, 0.94, -0.07, 0.02, -0.03)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip2" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.866, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866, 0.06, 0.02, -0.05)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip3" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.707, 0, -0.707, 0, 1, 0, 0.707, 0, 0.707, -0.02, 0.02, 0.02)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip4" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.966, 0, 0.259, 0, 1, 0, -0.259, 0, 0.966, 0.08, 0.02, 0.05)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip5" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.643, 0, 0.766, 0, 1, 0, -0.766, 0, 0.643, -0.08, 0.02, 0.07)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip6" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.985, 0, -0.174, 0, 1, 0, 0.174, 0, 0.985, 0, 0.05, 0)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip7" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.819, 0, -0.574, 0, 1, 0, 0.574, 0, 0.819, -0.03, 0.045, 0.03)
+mesh = SubResource("strip_mesh")
+
+[node name="Strip8" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.5, 0, 0.866, 0, 1, 0, -0.866, 0, 0.5, 0.035, 0.045, -0.02)
+mesh = SubResource("strip_mesh")
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
+
+[node name="Mark1" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.2, -0.03)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark2" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.04, 0.22, 0.02)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark3" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, 0.23, 0.06)
+mesh = SubResource("mark_mesh")

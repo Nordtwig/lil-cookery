@@ -14,6 +14,13 @@ enum Verb { CHOP, COOK }
 ## entry here plus its scene file. Unknown types fall back to the generic item.
 const _FALLBACK_SCENE := "res://items/item.tscn"
 
+# A few ingredients are dispensers: a whole item (a loaf, a head) you prep once
+# — its own quality/doneness/chop state, on its own model — and then peel usable
+# portions off of. Baking a loaf, or chopping a head, unlocks it; each peel spawns
+# a distinct portion item (`dispenses`) that inherits the whole's earned quality.
+# The loaf/head is never itself plated; only its portions are. This keeps every
+# item's state honest to a single physical object — no shared mesh or doneness
+# doing double duty for both a batch and its pieces.
 const DEFS := {
 	"tomato": {
 		"color": Color(0.86, 0.19, 0.14),
@@ -25,16 +32,22 @@ const DEFS := {
 		"steps": [Verb.CHOP],  # "chop" == slice; no cooking
 		"scene": "res://items/cheese.tscn",
 	},
-	"bread": {
+	"bread_loaf": {
 		"color": Color(0.82, 0.62, 0.36),  # bakes pale tan -> golden -> charred
-		"steps": [Verb.COOK],  # baked whole on the stove — no chopping at all
+		"steps": [Verb.COOK],  # baked whole on the stove — no chopping
+		"scene": "res://items/bread_loaf.tscn",
+		"dispenses": "bread",  # a baked loaf peels into slices
+		"uses": 4,
+	},
+	"bread": {
+		"color": Color(0.82, 0.62, 0.36),  # a baked slice; ready to plate as-is
+		"steps": [],  # finished portion — its quality is inherited from the loaf
 		"scene": "res://items/bread.tscn",
-		"yield": 4,  # one loaf bakes into 4 usable slices
-		"toasts_into": "toasted_bread",  # a second cook pass toasts a slice, for bruschetta
+		"toasts_into": "toasted_bread",  # a cook pass toasts a slice, for bruschetta
 	},
 	"toasted_bread": {
 		"color": Color(0.62, 0.40, 0.20),  # a deeper golden-brown than plain baked bread
-		"steps": [Verb.COOK],  # never dispensed fresh — only reached via transform_into
+		"steps": [],  # never dispensed fresh — only reached via transform_into
 		"scene": "res://items/bread.tscn",  # same slice geometry, only the tint differs
 	},
 	"meat": {
@@ -42,11 +55,17 @@ const DEFS := {
 		"steps": [Verb.COOK],  # a pre-formed patty; only needs the stove
 		"scene": "res://items/meat.tscn",
 	},
+	"lettuce_head": {
+		"color": Color(0.48, 0.72, 0.32),
+		"steps": [Verb.CHOP],  # chopped whole on a board — no cooking
+		"scene": "res://items/lettuce_head.tscn",
+		"dispenses": "lettuce",  # a chopped head peels into scraps
+		"uses": 4,
+	},
 	"lettuce": {
 		"color": Color(0.48, 0.72, 0.32),
-		"steps": [Verb.CHOP],
+		"steps": [],  # finished portion — quality inherited from the head
 		"scene": "res://items/lettuce.tscn",
-		"yield": 4,  # one head chops into 4 scraps
 	},
 }
 
@@ -64,12 +83,16 @@ static func scene_for(type: String) -> PackedScene:
 	return load(DEFS.get(type, {}).get("scene", _FALLBACK_SCENE))
 
 
-## How many usable pieces one whole ingredient's relevant step (whichever
-## verb splits it — see YieldStation) yields. Most ingredients are 1 (prep
-## just refines the single item in place); a few (bread, lettuce) split into
-## several independent pieces.
-static func yield_for(type: String) -> int:
-	return DEFS.get(type, {}).get("yield", 1)
+## The portion type this ingredient dispenses once prepped (a baked loaf peels
+## `bread` slices, a chopped head peels `lettuce` scraps), or "" if it's a
+## plain single item that's plated directly. See Item.can_dispense.
+static func dispenses_for(type: String) -> String:
+	return DEFS.get(type, {}).get("dispenses", "")
+
+
+## How many portions a dispenser ingredient yields before it's used up.
+static func uses_for(type: String) -> int:
+	return DEFS.get(type, {}).get("uses", 0)
 
 
 ## The ingredient type a *second* cook pass transforms this one into (e.g.

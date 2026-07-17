@@ -23,16 +23,9 @@ extends SlotStation
 ## pressing-and-holding always resumes cutting cleanly, and a quick tap never
 ## leaves so much as a trace of progress behind.
 ##
-## Yield ingredients (Ingredients.yield_for) that split on CHOP (currently
-## just lettuce — bread now splits on COOK, on the stove, see SlotStation
-## and CookStation) split into several pieces the first time their chop
-## completes: one piece goes straight to whoever pulled it, the rest sits in
-## the slot as an IngredientBundle. That bundle's own tap-peels/hold-takes-
-## all behavior lives in SlotStation (shared by every station, not just this
-## one — a batch keeps offering pieces wherever it's relocated to); this
-## class only needs to make sure a still-in-progress raw item's own
-## take-vs-chop disambiguation runs first, falling through to SlotStation
-## for the bundle case otherwise.
+## A head of lettuce is a dispenser: chopping it completes its CHOP step and
+## turns it into something you peel scraps off of (see Item.can_dispense and
+## SlotStation) — the peel interaction itself lives on the shared station.
 
 @export var chop_duration := 2.0  # seconds for chop_progress to reach 1.0 (top of Perfect)
 # _TAP_GRACE is inherited from SlotStation — same grace window, one constant.
@@ -72,24 +65,24 @@ func interact(player: Player) -> void:
 		_pending_take_player = player
 		_press_elapsed = 0.0
 		return
-	super.interact(player)  # SlotStation handles a leftover bundle, if any
+	super.interact(player)
 
 
 func interact_hold(player: Player, delta: float) -> void:
-	if _is_chopping():
-		if _pending_take_player == player:
-			_press_elapsed += delta
-			if _press_elapsed < _TAP_GRACE:
-				return  # still uncertain whether this is a tap or a hold — no progress yet
-			# Held long enough to be a genuine hold, not a tap — cancel the
-			# pending take (releasing later won't also take the item) and
-			# start chopping for real from this point on.
-			_pending_take_player = null
-		held_item.chop(delta, 1.0 / chop_duration)
-		_chopped_this_frame = true
-		_update_gauge()
+	if not _is_chopping():
+		super.interact_hold(player, delta)  # a chopped head is a dispenser now
 		return
-	super.interact_hold(player, delta)  # SlotStation handles a bundle-hold, if any
+	if _pending_take_player == player:
+		_press_elapsed += delta
+		if _press_elapsed < _TAP_GRACE:
+			return  # still uncertain whether this is a tap or a hold — no progress yet
+		# Held long enough to be a genuine hold, not a tap — cancel the
+		# pending take (releasing later won't also take the item) and
+		# start chopping for real from this point on.
+		_pending_take_player = null
+	held_item.chop(delta, 1.0 / chop_duration)
+	_chopped_this_frame = true
+	_update_gauge()
 
 
 func _process(_delta: float) -> void:
@@ -106,22 +99,14 @@ func _process(_delta: float) -> void:
 			_pending_take_player = null
 			super.interact(p)
 		return
-	super._process(_delta)  # let SlotStation resolve its own pending bundle-take, if any
+	super._process(_delta)  # resolve a pending dispense-take on a chopped head
 
 
-## First-time chop completion of a yield ingredient (Ingredients.yield_for >
-## 1) splits into pieces via SlotStation._split_if_yield. Everything else —
-## a resumed re-chop, a yield-1 ingredient — passes through unchanged.
 func _on_item_removed(item: Item) -> Item:
 	_gauge.visible = false
-	if not _can_chop(item):
-		return item
-	var was_first_chop := not item.step_done(Ingredients.Verb.CHOP)
-	var score := item.chop_score()
-	item.lock_in_chop_score(score)
-	if not was_first_chop:
-		return item
-	return _split_if_yield(item, score)
+	if _can_chop(item):
+		item.lock_in_chop_score(item.chop_score())
+	return item
 
 
 func _is_chopping() -> bool:
@@ -130,8 +115,12 @@ func _is_chopping() -> bool:
 
 ## True both the first time (CHOP is the pending step) and for a resumed
 ## item that's already been chopped once (CHOP already recorded, but
-## chop_progress carries forward so more cutting keeps having an effect).
+## chop_progress carries forward so more cutting keeps having an effect). A
+## finished dispenser (a chopped head) is excluded — it's done and meant to be
+## sliced into scraps, not re-chopped; that frees the board to peel from it.
 func _can_chop(item: Item) -> bool:
+	if item.can_dispense():
+		return false
 	return item.has_step(Ingredients.Verb.CHOP) and (
 		item.next_verb() == Ingredients.Verb.CHOP
 		or item.step_done(Ingredients.Verb.CHOP)
