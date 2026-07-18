@@ -61,9 +61,15 @@ var _timer := 0.0
 var _eat_timer := 0.0
 var _plate: Plate = null
 
+## A ticket currently sitting physically on the table (set down by a player),
+## or null. Once the order's revealed, the want label stays up regardless of
+## whether a ticket is out being carried or resting here — see interact().
+var _ticket: OrderTicket = null
+
 @onready var _customer: Node3D = $Customer
 @onready var _want_label: Label3D = $Customer/Want
 @onready var _plate_spot: Marker3D = $PlateSpot
+@onready var _ticket_spot: Marker3D = $TicketSpot
 @onready var _cash: Node3D = $Cash
 @onready var _result: Label3D = $Result
 var _result_home: Vector3
@@ -95,13 +101,29 @@ func interact(player: Player) -> void:
 	match _state:
 		State.WAITING:
 			if player.held_item == null:
-				_reveal_order()
-				var ticket: OrderTicket = TICKET_SCENE.instantiate()
-				ticket.dish = _dish
-				ticket.table_number = table_number
-				player.take_item(ticket)
+				if _ticket != null:
+					# A ticket is already sitting on the table — pick it back
+					# up, same as taking anything off any other station's slot.
+					var t := _ticket
+					_ticket = null
+					player.take_item(t)
+				else:
+					_reveal_order()
+					var ticket: OrderTicket = TICKET_SCENE.instantiate()
+					ticket.dish = _dish
+					ticket.table_number = table_number
+					player.take_item(ticket)
 			elif player.held_item is Plate:
 				_serve(player)
+			elif player.held_item is OrderTicket and (player.held_item as OrderTicket).table_number == table_number and _ticket == null:
+				# Set this table's own ticket down — it just sits there
+				# physically, like an item on any other station's slot, until
+				# picked back up. The want label reflects "order revealed," not
+				# "ticket currently out," so it's untouched by this — a ticket
+				# for a different table is silently refused.
+				var t := player.drop_item() as OrderTicket
+				t.attach_to(_ticket_spot)
+				_ticket = t
 		State.PAID:
 			if player.held_item == null:
 				_collect()
@@ -145,6 +167,12 @@ func _serve(player: Player) -> void:
 	player.drop_item()
 	var res := plate.evaluate(Recipes.required_for(_dish), Recipes.base_for(_dish))
 
+	# A ticket left sitting on the table is stale the moment its order is
+	# actually resolved — free it rather than leaving a dead object behind.
+	if _ticket != null:
+		_ticket.queue_free()
+		_ticket = null
+
 	# The plate stays put and visible while the customer "eats" it — no
 	# instant vanish — rather than being freed immediately. The checklist
 	# was only ever a build-time aid, so it goes away once served.
@@ -178,8 +206,11 @@ func _collect() -> void:
 	_timer = randf_range(spawn_delay_min, spawn_delay_max)
 
 
+## Just the band ("PERFECT!"/"Good"/"Poor") — no dollar amount here. The value
+## is already revealed once at collect (see _collect's "+$N" pop); repeating it
+## at serve time is redundant, and collect is where the payoff should land.
 func _show_result(res: Dictionary) -> void:
-	_pop_label("%s  +$%d" % [_BAND_TEXT[res.band], res.value], _BAND_COLOR[res.band])
+	_pop_label(_BAND_TEXT[res.band], _BAND_COLOR[res.band])
 
 
 func _pop_label(text: String, color: Color) -> void:

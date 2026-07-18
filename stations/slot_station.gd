@@ -13,13 +13,28 @@ extends Station
 ##     merges it and takes the whole batch in one motion.
 ## The whole is a normal carryable Item, so relocating it is just picking it
 ## up and setting it down somewhere else, where it keeps offering portions.
+##
+## Also handles untagging: empty-handed, holding interact on a tagged Plate
+## sitting in the slot strips its order tag and hands the player back a real
+## OrderTicket for it (reconstructed from Plate.tagged_dish/tagged_table_number)
+## — same tap/hold shape as the dispenser (a quick tap still just takes the
+## plate, tag untouched). The plate has to be set down for this on purpose —
+## you'll want to relocate the ticket somewhere anyway, so it's never a dead end.
 
 const _TAP_GRACE := 0.15
+const _ORDER_TICKET_SCENE := preload("res://items/order_ticket.tscn")
 
 var held_item: Item = null
 
 var _pending_dispense_player: Player = null
 var _dispense_press_elapsed := 0.0
+
+## Empty-handed hold on a tagged plate strips the tag instead of taking it —
+## see interact()/interact_hold() below. Separate pending state from the
+## dispenser's, since a plate is never a dispenser (no conflict, but keeping
+## them distinct avoids one hold accidentally resolving the other's timer).
+var _pending_untag_player: Player = null
+var _untag_press_elapsed := 0.0
 
 @onready var _slot: Marker3D = $Slot
 
@@ -31,6 +46,12 @@ func interact(player: Player) -> void:
 		# instead (peel/merge-one vs. take/absorb-everything).
 		_pending_dispense_player = player
 		_dispense_press_elapsed = 0.0
+		return
+	if carried == null and held_item is Plate and (held_item as Plate).is_tagged():
+		# Don't resolve immediately — wait to see if this turns into a hold
+		# instead (strip the tag rather than taking the plate).
+		_pending_untag_player = player
+		_untag_press_elapsed = 0.0
 		return
 	if carried == null and held_item != null:
 		# Take the item off the station.
@@ -69,13 +90,13 @@ func interact(player: Player) -> void:
 		# Carrying an order ticket, station holds a plate: tag it. The ticket
 		# is consumed — its job was just to carry the order over.
 		var ticket := carried as OrderTicket
-		(held_item as Plate).tag_order(ticket.dish, ticket.table_label())
+		(held_item as Plate).tag_order(ticket.dish, ticket.table_number)
 		player.drop_item()
 		carried.queue_free()
 	elif held_item is OrderTicket and carried is Plate:
 		# Station holds a ticket, carrying a plate: same tag, other direction.
 		var ticket := held_item as OrderTicket
-		(carried as Plate).tag_order(ticket.dish, ticket.table_label())
+		(carried as Plate).tag_order(ticket.dish, ticket.table_number)
 		held_item.queue_free()
 		held_item = null
 
@@ -90,19 +111,35 @@ func interact_hold(player: Player, delta: float) -> void:
 				_take_whole_dispenser(player)
 			else:
 				_absorb_and_take_whole(player)
+	elif held_item is Plate and _pending_untag_player == player:
+		_untag_press_elapsed += delta
+		if _untag_press_elapsed >= _TAP_GRACE:
+			# Held long enough: strip the tag and hand back a real ticket for
+			# it. The plate stays put — this is never a take.
+			_pending_untag_player = null
+			_strip_tag_to_ticket(held_item as Plate, player)
 
 
 func _process(_delta: float) -> void:
-	if _pending_dispense_player == null:
+	if _pending_dispense_player != null:
+		var p := _pending_dispense_player
+		if not Input.is_action_pressed("p%d_interact" % p.player_id):
+			# Released before the grace window elapsed — a genuine quick tap.
+			_pending_dispense_player = null
+			if p.held_item == null:
+				_peel_one(p)
+			else:
+				_merge_one(p)
 		return
-	var p := _pending_dispense_player
-	if not Input.is_action_pressed("p%d_interact" % p.player_id):
-		# Released before the grace window elapsed — a genuine quick tap.
-		_pending_dispense_player = null
-		if p.held_item == null:
-			_peel_one(p)
-		else:
-			_merge_one(p)
+	if _pending_untag_player != null:
+		var p := _pending_untag_player
+		if not Input.is_action_pressed("p%d_interact" % p.player_id):
+			# Released before the grace window elapsed — a genuine quick tap:
+			# take the plate normally, tag untouched.
+			_pending_untag_player = null
+			var item := held_item
+			held_item = null
+			p.take_item(_on_item_removed(item))
 
 
 ## True when `carried` is a valid partner for the dispenser in the slot —
@@ -167,6 +204,16 @@ func _absorb_and_take_whole(player: Player) -> void:
 	d.uses_left = mini(d.uses_left + 1, Ingredients.uses_for(d.item_type))
 	held_item = null
 	player.take_item(d)
+
+
+## Reads the tag off before clearing it, so nothing is lost — the player gets
+## a real OrderTicket back, not just a discarded tag.
+func _strip_tag_to_ticket(plate: Plate, player: Player) -> void:
+	var ticket: OrderTicket = _ORDER_TICKET_SCENE.instantiate()
+	ticket.dish = plate.tagged_dish()
+	ticket.table_number = plate.tagged_table_number()
+	plate.clear_tag()
+	player.take_item(ticket)
 
 
 func _on_item_placed(_item: Item) -> void:

@@ -53,12 +53,16 @@ func _physics_process(delta: float) -> void:
 
 	_update_target()
 	if _target != null:
+		# interact = pickup/place (tap take/place/peel, hold take-whole-dispenser);
+		# action = operate a tool (tap trigger e.g. flip, hold e.g. chop).
 		if Input.is_action_just_pressed(prefix + "_interact"):
 			_target.interact(self)
 		if Input.is_action_pressed(prefix + "_interact"):
 			_target.interact_hold(self, delta)
 		if Input.is_action_just_pressed(prefix + "_action"):
 			_target.action(self)
+		if Input.is_action_pressed(prefix + "_action"):
+			_target.action_hold(self, delta)
 
 
 func take_item(item: Item) -> void:

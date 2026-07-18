@@ -24,18 +24,24 @@ func interact(_player: Player) -> void:
 	pass
 
 
-## Called every frame while a targeting player holds interact. Stations that
-## need continuous input (e.g. the cutting board) override this.
+## Called every frame while a targeting player holds interact. Pickup-side
+## continuous input — currently a dispenser's hold-to-take-the-whole-batch
+## (handled in SlotStation).
 func interact_hold(_player: Player, _delta: float) -> void:
 	pass
 
 
-## Tap-triggered "skill move" — the opt-in timing mechanic a station offers,
-## if any (currently just the stove's flip catch). Kept on a separate button
-## from interact so a normal pick-up/put-down action never gets silently
-## reinterpreted as a timing attempt. Does nothing where there's no such
-## mechanic.
+## Tap on the work button — a tool trigger: the stove's flip catch now, an
+## oven door or similar later. Separate from interact so a normal pickup is
+## never reinterpreted as a timing attempt. No-op where there's no trigger.
 func action(_player: Player) -> void:
+	pass
+
+
+## Held work button — operating a tool over time, currently the cutting
+## board's chop. Separate from interact_hold so "keep cutting" can never
+## collide with "pick this up". No-op where there's no such tool.
+func action_hold(_player: Player, _delta: float) -> void:
 	pass
 
 

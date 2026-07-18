@@ -21,7 +21,7 @@ const _FAN_Y := 0.09
 
 var components: Array[Item] = []
 var _tagged_dish := ""
-var _tagged_table := ""
+var _tagged_table_number := 0  # 0 = untagged-to-a-table (e.g. a hand-tagged plate)
 
 @onready var _checklist: Label3D = $Checklist
 @onready var _checklist_bg: MeshInstance3D = $ChecklistBG
@@ -35,6 +35,21 @@ var _tagged_table := ""
 ## portions, never the batch itself.
 func can_add(item: Item) -> bool:
 	return item.item_type != "" and not item.is_dispenser() and components.size() < MAX_COMPONENTS
+
+
+## True if an order tag is currently attached (see tag_order/clear_tag).
+func is_tagged() -> bool:
+	return _tagged_dish != ""
+
+
+## The tagged dish/table, for reconstructing a physical OrderTicket when a tag
+## is stripped back off (see SlotStation's untag path). "" / 0 if untagged.
+func tagged_dish() -> String:
+	return _tagged_dish
+
+
+func tagged_table_number() -> int:
+	return _tagged_table_number
 
 
 ## Overrides Item's chop/cook/season-based definition — a plate's own
@@ -56,22 +71,26 @@ func add_component(item: Item) -> void:
 ## Tag this plate with an order (from a carried OrderTicket). Purely a
 ## display aid — shows a live checklist of the dish's required components as
 ## they're added, but never affects scoring; evaluate() always scores
-## against whatever's explicitly passed to it. `table_label` (e.g. "T2") is an
-## optional prefix so a plate reads as belonging to a specific table.
-func tag_order(dish: String, table_label: String = "") -> void:
+## against whatever's explicitly passed to it. `table_number` (e.g. 2) is an
+## optional table this order came from, so a plate reads as belonging to it;
+## kept as a raw number (not a pre-formatted "T2" string) so an untag can
+## reconstruct a real OrderTicket from it.
+func tag_order(dish: String, table_number: int = 0) -> void:
 	_tagged_dish = dish
-	_tagged_table = table_label
+	_tagged_table_number = table_number
 	_relayout()
 	_update_checklist()
 
 
-## Clears the order tag once a plate has been served — the live checklist was
-## only ever useful while building the dish, not once it's sitting in front of
-## a customer. Leaves the plated arrangement exactly as it was; only the
-## checklist display goes away.
+## Clears the order tag — either once a plate has been served (the live
+## checklist was only useful while building the dish), or when a player
+## deliberately strips it back off a plate sitting at a station (see
+## SlotStation's untag path, which reads tagged_dish/tagged_table_number
+## first to hand back a real ticket). Leaves the plated arrangement exactly
+## as it was; only the checklist display goes away.
 func clear_tag() -> void:
 	_tagged_dish = ""
-	_tagged_table = ""
+	_tagged_table_number = 0
 	_checklist.visible = false
 	_checklist_bg.visible = false
 
@@ -133,8 +152,8 @@ func _update_checklist() -> void:
 	for type in Recipes.required_for(_tagged_dish):
 		need[type] = need.get(type, 0) + 1
 	var header := _tagged_dish.to_upper()
-	if _tagged_table != "":
-		header = "%s · %s" % [_tagged_table, header]
+	if _tagged_table_number > 0:
+		header = "T%d · %s" % [_tagged_table_number, header]
 	var lines := [header]
 	var listed := {}
 	for type in Recipes.required_for(_tagged_dish):
@@ -225,8 +244,8 @@ func get_inspect_text() -> String:
 	var header := "PLATE"
 	if _tagged_dish != "":
 		header += " — "
-		if _tagged_table != "":
-			header += "%s · " % _tagged_table
+		if _tagged_table_number > 0:
+			header += "T%d · " % _tagged_table_number
 		header += _tagged_dish.to_upper()
 	if components.is_empty():
 		return header + " (empty)"

@@ -1,40 +1,27 @@
 class_name CuttingBoard
 extends SlotStation
 
-## Chops the item in its slot. Hold interact to advance chop_progress — a
-## continuous meter with the same Undercut/Good/Perfect/Overcut shape as the
-## stove's cook bands. Watching the gauge and pulling (a plain interact tap,
-## never overridden here) at the right moment is the whole skill; go too far
-## and it overcuts, mirroring burnt. Progress only advances while a player
-## actively holds interact — unlike the stove, nothing chops itself with no
-## hand on the knife, so an unattended board never goes bad on its own.
-## Pulling a partially-chopped item off doesn't lock it out — set it aside
-## and put it back on any board later to keep refining the chop right where
-## chop_progress left off.
+## Chops the item in its slot. Hold the **work** button to advance chop_progress
+## — a continuous meter with the same Undercut/Good/Perfect/Overcut shape as the
+## stove's cook bands. Watching the gauge and pulling (a **pickup** tap, plain
+## take) at the right moment is the whole skill; go too far and it overcuts,
+## mirroring burnt. Progress only advances while a player actively holds work —
+## unlike the stove, nothing chops itself with no hand on the knife, so an
+## unattended board never goes bad on its own. Pulling a partially-chopped item
+## off doesn't lock it out — set it aside and put it back on any board later to
+## keep refining the chop right where chop_progress left off.
 ##
-## Tap vs. hold is ambiguous at the instant of a fresh press — Godot can't
-## know yet whether this is a quick tap (take it) or the start of a longer
-## hold (keep chopping). A take is deferred for `_TAP_GRACE`, and — to avoid
-## a quick tap nudging chop_progress before we know it's just a tap —
-## progress itself doesn't start accumulating until that same window has
-## elapsed either. If the button is released before then, it was a genuine
-## tap and the item is taken, untouched; if the hold continues past it, the
-## take is cancelled and chopping starts for real from that point on — so
-## pressing-and-holding always resumes cutting cleanly, and a quick tap never
-## leaves so much as a trace of progress behind.
-##
-## A head of lettuce is a dispenser: chopping it completes its CHOP step and
-## turns it into something you peel scraps off of (see Item.can_dispense and
-## SlotStation) — the peel interaction itself lives on the shared station.
+## Because take (pickup) and chop (work) are now different buttons, there's no
+## tap/hold ambiguity to resolve — a pull can never be mistaken for a chop, and
+## a chop can never snatch the item away. (Take/place and a dispenser's
+## peel/take-whole live on the shared SlotStation, inherited unchanged; a chopped
+## `lettuce_head` becomes a dispenser you peel scraps off of, see Item.can_dispense.)
 
 @export var chop_duration := 2.0  # seconds for chop_progress to reach 1.0 (top of Perfect)
-# _TAP_GRACE is inherited from SlotStation — same grace window, one constant.
 
-var _pending_take_player: Player = null
-var _press_elapsed := 0.0
-## Set by interact_hold whenever a real chop happens this frame; the gauge
-## is only ever visible while that's true — an item just sitting there
-## between cuts shows no gauge, only actively cutting does.
+## Set by action_hold whenever a real chop happens this frame; the gauge is only
+## ever visible while that's true — an item just sitting there between cuts shows
+## no gauge, only actively cutting does.
 var _chopped_this_frame := false
 
 const _BAND_COLORS := {
@@ -58,48 +45,20 @@ func _ready() -> void:
 	_gauge.visible = false
 
 
-func interact(player: Player) -> void:
-	if _is_chopping() and player.held_item == null:
-		# Empty-handed tap on a choppable item: don't take it immediately —
-		# wait to see if this turns into a hold instead.
-		_pending_take_player = player
-		_press_elapsed = 0.0
-		return
-	super.interact(player)
-
-
-func interact_hold(player: Player, delta: float) -> void:
-	if not _is_chopping():
-		super.interact_hold(player, delta)  # a chopped head is a dispenser now
-		return
-	if _pending_take_player == player:
-		_press_elapsed += delta
-		if _press_elapsed < _TAP_GRACE:
-			return  # still uncertain whether this is a tap or a hold — no progress yet
-		# Held long enough to be a genuine hold, not a tap — cancel the
-		# pending take (releasing later won't also take the item) and
-		# start chopping for real from this point on.
-		_pending_take_player = null
-	held_item.chop(delta, 1.0 / chop_duration)
-	_chopped_this_frame = true
-	_update_gauge()
+func action_hold(_player: Player, delta: float) -> void:
+	if _is_chopping():
+		held_item.chop(delta, 1.0 / chop_duration)
+		_chopped_this_frame = true
+		_update_gauge()
 
 
 func _process(_delta: float) -> void:
-	# Physics (where interact_hold runs) always finishes before this frame
-	# callback, so the flag reliably reflects whether a real chop happened
-	# this frame — visible only while actually cutting, not just resting.
+	# Physics (where action_hold runs) always finishes before this frame
+	# callback, so the flag reliably reflects whether a real chop happened this
+	# frame — visible only while actually cutting, not just resting.
 	_gauge.visible = _chopped_this_frame
 	_chopped_this_frame = false
-
-	if _pending_take_player != null:
-		var p := _pending_take_player
-		if not Input.is_action_pressed("p%d_interact" % p.player_id):
-			# Released before the grace window elapsed — a genuine quick tap.
-			_pending_take_player = null
-			super.interact(p)
-		return
-	super._process(_delta)  # resolve a pending dispense-take on a chopped head
+	super._process(_delta)  # let SlotStation resolve a pending dispense-take, if any
 
 
 func _on_item_removed(item: Item) -> Item:
@@ -113,11 +72,11 @@ func _is_chopping() -> bool:
 	return held_item != null and _can_chop(held_item)
 
 
-## True both the first time (CHOP is the pending step) and for a resumed
-## item that's already been chopped once (CHOP already recorded, but
-## chop_progress carries forward so more cutting keeps having an effect). A
-## finished dispenser (a chopped head) is excluded — it's done and meant to be
-## sliced into scraps, not re-chopped; that frees the board to peel from it.
+## True both the first time (CHOP is the pending step) and for a resumed item
+## that's already been chopped once (CHOP already recorded, but chop_progress
+## carries forward so more cutting keeps having an effect). A finished dispenser
+## (a chopped head) is excluded — it's done and meant to be sliced into scraps,
+## not re-chopped; that frees the board to peel from it.
 func _can_chop(item: Item) -> bool:
 	if item.can_dispense():
 		return false
