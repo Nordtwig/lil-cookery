@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/tray.gd" id="1_script"]
+
+[sub_resource type="BoxMesh" id="base_mesh"]
+size = Vector3(0.94, 0.04, 0.72)
+
+[sub_resource type="BoxMesh" id="rail_mesh"]
+size = Vector3(0.94, 0.06, 0.03)
+
+[node name="Tray" type="Node3D"]
+script = ExtResource("1_script")
+color = Color(0.78, 0.72, 0.6, 1)
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+mesh = SubResource("base_mesh")
+
+[node name="RailN" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -0.345)
+mesh = SubResource("rail_mesh")
+
+[node name="RailS" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0.345)
+mesh = SubResource("rail_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false

@@ -9,6 +9,10 @@ extends Station
 ## the real day/night ordering system until that exists. Carrying a matching,
 ## still-unmodified ingredient and interacting instead puts it back — undoes
 ## the dispense, no cost, no delay, since nothing was actually spent on it.
+##
+## Carrying a container that accepts this crate's type (a Tray with room)
+## instead swipes a fresh item straight onto it, skipping the hand — repeated
+## taps batch-fill a tray without a hand-then-merge round trip each time.
 
 @export var item_type := "tomato"
 @export var max_stock := 8
@@ -42,6 +46,18 @@ func interact(player: Player) -> void:
 		player.drop_item()
 		carried.queue_free()
 		stock += 1
+	elif carried.can_absorb_type(item_type):
+		if stock <= 0:
+			# Same empty-handed dead-end otherwise: an empty crate should
+			# still offer a restock, not silently do nothing just because a
+			# tray happens to be in the way of the take.
+			_try_restock()
+			return
+		var item: Item = Ingredients.scene_for(item_type).instantiate()
+		item.item_type = item_type
+		add_child(item)  # scratch-parented so _ready fires; absorb reparents it
+		carried.absorb(item)
+		stock -= 1
 
 
 func _try_restock() -> void:

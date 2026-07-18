@@ -5,12 +5,16 @@ extends Station
 ## are free, or puts down what you're carrying if the slot is free.
 ## Subclasses hook the placed/removed events to add behavior (e.g. cooking).
 ##
-## Also handles dispensers (a baked loaf, a chopped head — Item.can_dispense).
-## Once a dispenser is sitting in a slot, on *any* SlotStation (not just its
-## own prep station), the same tap/hold shape applies both ways:
+## Also handles dispensers — anything speaking Item's dispenser grammar
+## (can_dispense/can_absorb/dispense/absorb): a baked loaf, a chopped head,
+## a player-filled Tray. Once one is sitting in a slot, on *any* SlotStation
+## (not just its own prep station), the same tap/hold shape applies both ways:
 ##   - Empty-handed: tap peels off one portion, hold takes the whole batch.
-##   - Carrying a matching portion: tap merges it back in (uses + 1), hold
-##     merges it and takes the whole batch in one motion.
+##   - Carrying something it can absorb: tap merges it in, hold merges it
+##     and takes the whole batch in one motion.
+## The reverse direction works too: carrying a container that can absorb the
+## slot's item (a tray in hand, a finished patty on the stove) scoops it up
+## on a plain tap — mirroring the carry-plate/station-component symmetry.
 ## The whole is a normal carryable Item, so relocating it is just picking it
 ## up and setting it down somewhere else, where it keeps offering portions.
 ##
@@ -24,7 +28,18 @@ extends Station
 const _TAP_GRACE := 0.15
 const _ORDER_TICKET_SCENE := preload("res://items/order_ticket.tscn")
 
-var held_item: Item = null
+## What's "in the slot" — a plain var for every ordinary single-slot station
+## (Counter, CookStation, CuttingBoard), but routed through two overridable
+## methods so a subclass can redirect it elsewhere entirely (TrayFridge points
+## this at whichever of several stacked slots is currently active) without
+## touching a single line of the dispensing/combine/season/tag logic below.
+var held_item: Item:
+	get:
+		return _get_held()
+	set(value):
+		_set_held(value)
+
+var _held_backing: Item = null
 
 var _pending_dispense_player: Player = null
 var _dispense_press_elapsed := 0.0
@@ -36,14 +51,36 @@ var _dispense_press_elapsed := 0.0
 var _pending_untag_player: Player = null
 var _untag_press_elapsed := 0.0
 
-@onready var _slot: Marker3D = $Slot
+## get_node_or_null, not $Slot: a station with no single fixed slot (again,
+## TrayFridge) has no "Slot" node at all and overrides _slot_marker() instead,
+## so this is simply never read in that case.
+@onready var _slot: Marker3D = get_node_or_null("Slot")
+
+
+func _get_held() -> Item:
+	return _held_backing
+
+
+func _set_held(value: Item) -> void:
+	_held_backing = value
+
+
+## Where a placed item physically attaches. Base: the one fixed Slot marker;
+## TrayFridge overrides this to whichever stacked slot is currently active.
+func _slot_marker() -> Marker3D:
+	return _slot
 
 
 func interact(player: Player) -> void:
 	var carried := player.held_item
-	if held_item != null and held_item.can_dispense() and _dispenser_targeted(carried):
+	if held_item != null and (
+		(carried == null and held_item.can_dispense())
+		or (carried != null and held_item.can_absorb(carried))
+	):
 		# Don't resolve immediately — wait to see if this turns into a hold
-		# instead (peel/merge-one vs. take/absorb-everything).
+		# instead (peel/merge-one vs. take/absorb-everything). Note an empty
+		# tray with empty hands falls straight through to a plain take — no
+		# grace-window delay when there's nothing to peel.
 		_pending_dispense_player = player
 		_dispense_press_elapsed = 0.0
 		return
@@ -61,9 +98,26 @@ func interact(player: Player) -> void:
 	elif carried != null and held_item == null:
 		# Place the carried item onto the empty slot.
 		var item := player.drop_item()
-		item.attach_to(_slot)
+		item.attach_to(_slot_marker())
 		held_item = item
 		_on_item_placed(item)
+	elif carried != null and held_item != null and carried.can_absorb(held_item):
+		# Carrying a container that can take the slot's item (a tray in hand,
+		# a finished patty on the stove): scoop it up — the mirror of the
+		# carry-plate + station-component branch below. Runs through
+		# _on_item_removed so a board/stove still locks in the score.
+		var item := held_item
+		held_item = null
+		carried.absorb(_on_item_removed(item))
+	elif carried != null and held_item != null and carried.can_dispense() and held_item.can_absorb_type(Ingredients.dispenses_for(carried.item_type)):
+		# Carrying a ready dispenser (a baked loaf, a chopped head), station
+		# holds a container that takes its portions: peel one straight onto
+		# it, skipping the hand — repeated taps empty the whole dispenser
+		# into the tray (four taps deposits a chopped head's four scraps).
+		held_item.absorb(carried.dispense(self))
+		if carried.frees_when_empty() and not carried.can_dispense():
+			player.drop_item()
+			carried.queue_free()
 	elif carried is Plate and (carried as Plate).can_add(held_item):
 		# Carrying a plate, station holds a component: add it to the plate.
 		var comp := held_item
@@ -142,36 +196,15 @@ func _process(_delta: float) -> void:
 			p.take_item(_on_item_removed(item))
 
 
-## True when `carried` is a valid partner for the dispenser in the slot —
-## either nothing (empty-handed: peel/take-all) or a single portion of the
-## type this dispenser yields (merge/absorb).
-func _dispenser_targeted(carried: Item) -> bool:
-	if carried == null:
-		return true
-	return carried.item_type == Ingredients.dispenses_for(held_item.item_type)
-
-
-## Spawn one portion carrying the whole's earned quality. The portion is a
-## genuinely separate item with its own fresh state — nothing of the loaf's
-## doneness or the head's chop_progress is written onto it.
-func _spawn_portion(dispenser: Item) -> Item:
-	var ptype := Ingredients.dispenses_for(dispenser.item_type)
-	var portion: Item = Ingredients.scene_for(ptype).instantiate()
-	portion.item_type = ptype
-	add_child(portion)  # scratch-parented so _ready() fires; caller reparents next
-	portion.inherited_quality = dispenser.quality_value()
-	return portion
-
-
-## A quick tap on a dispenser: hand over one portion, keep the rest. When the
-## last portion comes out, the (now-empty) whole is consumed.
+## A quick tap on a dispenser: hand over one portion, keep the rest. A whole
+## that frees when empty (a loaf peeled to its last slice) is consumed; a
+## container (Tray) just sits there empty, ready to refill.
 func _peel_one(player: Player) -> void:
 	var d := held_item
 	if d == null or not d.can_dispense():
 		return
-	player.take_item(_spawn_portion(d))
-	d.uses_left -= 1
-	if d.uses_left <= 0:
+	player.take_item(d.dispense(self))
+	if d.frees_when_empty() and not d.can_dispense():
 		held_item = null
 		d.queue_free()
 
@@ -185,23 +218,22 @@ func _take_whole_dispenser(player: Player) -> void:
 	player.take_item(d)
 
 
-## A quick tap while carrying a matching portion: put it back into the batch.
+## A quick tap while carrying something the batch can absorb: put it in.
 func _merge_one(player: Player) -> void:
 	var d := held_item
-	if d == null or not d.is_dispenser():
+	if d == null or not d.can_absorb(player.held_item):
 		return
-	player.drop_item().queue_free()
-	d.uses_left = mini(d.uses_left + 1, Ingredients.uses_for(d.item_type))
+	d.absorb(player.drop_item())
 
 
-## A sustained hold while carrying a matching portion: absorb it and take the
-## whole batch in the same motion.
+## A sustained hold while carrying something the batch can absorb: put it in
+## and take the whole (now one bigger) batch in the same motion.
 func _absorb_and_take_whole(player: Player) -> void:
 	var d := held_item
 	if d == null:
 		return
-	player.drop_item().queue_free()
-	d.uses_left = mini(d.uses_left + 1, Ingredients.uses_for(d.item_type))
+	if d.can_absorb(player.held_item):
+		d.absorb(player.drop_item())
 	held_item = null
 	player.take_item(d)
 

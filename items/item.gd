@@ -229,6 +229,14 @@ func transform_into(new_type: String) -> void:
 
 
 # --- dispensing ---
+#
+# One shared grammar for anything that holds portions (tap peels one, hold
+# takes the whole thing; carrying a matching item, tap merges it back in,
+# hold absorbs + takes everything). The base implementations cover the
+# data-driven ingredient dispensers (a baked loaf, a chopped head — driven
+# by Ingredients' dispenses/uses fields); Tray overrides all of them to be a
+# player-filled container of real items instead. SlotStation only ever talks
+# to these five methods, so it needs no per-type knowledge.
 
 ## True if this is a dispenser type at all (a loaf, a head) — regardless of
 ## whether it's been prepped yet.
@@ -236,11 +244,58 @@ func is_dispenser() -> bool:
 	return Ingredients.dispenses_for(item_type) != ""
 
 
-## True if this dispenser is ready to peel a portion off right now: it's a
-## dispenser, its own prep step (baking a loaf, chopping a head) is done, and
-## it still has portions left. A raw loaf/head can't be sliced.
+## True if a portion can be peeled off right now: it's a dispenser, its own
+## prep step (baking a loaf, chopping a head) is done, and it still has
+## portions left. A raw loaf/head can't be sliced.
 func can_dispense() -> bool:
 	return is_dispenser() and is_fully_prepped() and uses_left > 0
+
+
+## True if `item` can be merged back in — a portion of the type this whole
+## dispenses, with room for it. A full dispenser refuses (the item stays in
+## the player's hand) rather than silently eating the merge.
+func can_absorb(item: Item) -> bool:
+	return item != null and can_absorb_type(item.item_type)
+
+
+## Type-only variant of can_absorb — whether a portion of `type` could be
+## merged in, without an actual item existing yet to check. Lets a Crate (or
+## a carried dispenser peeling straight onto a container, see SlotStation)
+## decide the destination before spawning anything.
+func can_absorb_type(type: String) -> bool:
+	return (
+		is_dispenser()
+		and is_fully_prepped()
+		and type == Ingredients.dispenses_for(item_type)
+		and uses_left < Ingredients.uses_for(item_type)
+	)
+
+
+## Merge `item` back in. For an ingredient dispenser the portion is consumed
+## outright — it becomes part of the whole again, not a stored object.
+func absorb(item: Item) -> void:
+	item.queue_free()
+	uses_left = mini(uses_left + 1, Ingredients.uses_for(item_type))
+
+
+## Peel one portion off, returning it. `host` is a scratch parent so a
+## freshly spawned portion's _ready fires; the caller reparents it right
+## after (to a hand, a slot). The portion is a genuinely separate item with
+## its own fresh state, carrying only the whole's earned quality.
+func dispense(host: Node) -> Item:
+	var ptype := Ingredients.dispenses_for(item_type)
+	var portion: Item = Ingredients.scene_for(ptype).instantiate()
+	portion.item_type = ptype
+	host.add_child(portion)
+	portion.inherited_quality = quality_value()
+	uses_left -= 1
+	return portion
+
+
+## Whether running out consumes this item. A loaf peeled to its last slice
+## is gone; an emptied container (Tray) persists to be refilled.
+func frees_when_empty() -> bool:
+	return true
 
 
 # --- scoring ---
