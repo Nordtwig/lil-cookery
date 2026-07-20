@@ -4,7 +4,10 @@ extends SlotStation
 ## A stove. Place a raw cookable item and it cooks on its own; a flat gauge
 ## in front shows the band (Poor → Good → Perfect → Burnt). Pull it at the
 ## right moment. Leaving it too long burns it to a low-value item — the cost
-## is systemic (lost quality), never a hard fail.
+## is systemic (lost quality), never a hard fail. A looping frying sound plays
+## for exactly as long as _is_heating() is true (started/stopped in _process,
+## not tied to any specific placement/removal branch, so it can never be left
+## running after an item's pulled or forgotten silent while one's cooking).
 ##
 ## Partway through, a "FLIP!" window opens once per cook: catching it with a
 ## tap on **action** adds a quality bonus on top of whatever band you
@@ -54,6 +57,7 @@ const _BAND_COLORS := {
 @onready var _fill_pivot: Node3D = $Gauge/FillPivot
 @onready var _fill_mesh: MeshInstance3D = $Gauge/FillPivot/Fill
 @onready var _flip_cue: Label3D = $FlipCue
+@onready var _fry_sound: AudioStreamPlayer3D = $FrySound
 
 var _fill_mat: StandardMaterial3D
 
@@ -80,7 +84,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if _is_heating():
+	var heating := _is_heating()
+	if heating and not _fry_sound.playing:
+		_fry_sound.play()
+	elif not heating and _fry_sound.playing:
+		_fry_sound.stop()
+	if heating:
 		held_item.cook(delta, 1.0 / cook_duration)
 		_update_gauge()
 		_update_flip_window(delta)
