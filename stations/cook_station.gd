@@ -65,8 +65,15 @@ var _flip_tween: Tween
 
 
 func _ready() -> void:
+	super._ready()
 	_fill_mat = StandardMaterial3D.new()
 	_fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_fill_mat.no_depth_test = true
+	# Highest of the three gauge materials (BG=0, PerfectZone=1) — without an
+	# explicit order, several no-depth-test layers draw in whatever order
+	# Godot's render sort picks, not their actual spatial stacking, so the
+	# fill (the actual progress meter) could end up hidden behind the BG.
+	_fill_mat.render_priority = 2
 	_fill_mesh.material_override = _fill_mat
 	_gauge.visible = false
 	_flip_cue.visible = false

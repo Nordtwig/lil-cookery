@@ -1,15 +1,19 @@
 class_name SpiceRack
 extends Station
 
-## Dispenses limited-use seasoning shakers. The rack itself holds a finite
-## charge pool: spawning a fresh shaker or topping off a depleted one both
-## draw from that pool. When the rack itself runs dry, interacting with free
-## hands triggers the same costed emergency restock as ingredient storage
-## (Crate) — same pressure valve, same pattern, so players only learn it once.
+## Dispenses limited-use seasoning shakers. One generic rack covers every
+## dish — there's no per-recipe "right spice" to match, so a single flavor
+## (and thus a single rack) is all seasoning ever needed; no gameplay depth
+## lost by consolidating what used to be two cosmetically-different racks.
+## The rack itself holds a finite charge pool: spawning a fresh shaker or
+## topping off a depleted one both draw from that pool. When the rack itself
+## runs dry, interacting with free hands triggers the same costed emergency
+## restock as ingredient storage (Crate) — same pressure valve, same pattern,
+## so players only learn it once.
 
 const SHAKER_SCENE := preload("res://items/spice.tscn")
 
-@export var spice_type := "pepper"
+@export var spice_type := "spice"
 @export var shaker_color := Color(0.32, 0.27, 0.22, 1)
 @export var bonus := 0.15
 @export var charges_per_shaker := 4
@@ -22,6 +26,7 @@ var _restocking := false
 
 
 func _ready() -> void:
+	super._ready()
 	rack_charges = max_rack_charges
 
 
@@ -66,7 +71,40 @@ func _try_restock() -> void:
 	_restocking = true
 	GameState.add_money(-restock_cost)
 	await get_tree().create_timer(restock_delay).timeout
+	# See Crate._try_restock for why this checks _restocking rather than
+	# assuming the restock it kicked off is still the live one.
+	if not _restocking:
+		return
 	rack_charges = max_rack_charges
+	_restocking = false
+
+
+## The per-instance identity a respawned SpiceRack needs back — everything
+## that distinguishes e.g. pepper from basil.
+func get_config() -> Dictionary:
+	return {
+		"spice_type": spice_type,
+		"shaker_color": shaker_color,
+		"bonus": bonus,
+		"charges_per_shaker": charges_per_shaker,
+		"max_rack_charges": max_rack_charges,
+	}
+
+
+func apply_config(config: Dictionary) -> void:
+	spice_type = config.get("spice_type", spice_type)
+	shaker_color = config.get("shaker_color", shaker_color)
+	bonus = config.get("bonus", bonus)
+	charges_per_shaker = config.get("charges_per_shaker", charges_per_shaker)
+	max_rack_charges = config.get("max_rack_charges", max_rack_charges)
+
+
+func is_empty() -> bool:
+	return rack_charges <= 0 and not _restocking
+
+
+func clear_contents() -> void:
+	rack_charges = 0
 	_restocking = false
 
 

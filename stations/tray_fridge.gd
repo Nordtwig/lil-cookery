@@ -48,6 +48,19 @@ func action(_player: Player) -> void:
 			_slide_to_anchor(_slots[i], i)
 
 
+## SlotStation's is_empty/clear_contents only ever see _slots[3] (the top,
+## via held_item) — this station actually needs all four checked/cleared.
+func is_empty() -> bool:
+	return _slots.all(func(item: Item) -> bool: return item == null)
+
+
+func clear_contents() -> void:
+	for i in _slots.size():
+		if _slots[i] != null:
+			_slots[i].queue_free()
+			_slots[i] = null
+
+
 ## Reparents immediately (so game logic — can_absorb, inspect, the next
 ## interact — is correct right away), then plays the visual slide up from
 ## wherever the item actually was to its new shelf, rather than snapping.

@@ -76,6 +76,7 @@ var _result_home: Vector3
 
 
 func _ready() -> void:
+	super._ready()
 	_result_home = _result.position
 	_result.visible = false
 	_customer.visible = false
@@ -129,6 +130,40 @@ func interact(player: Player) -> void:
 				_collect()
 		_:
 			pass
+
+
+## Which table number this is — the one bit of identity a respawned Table
+## needs back.
+func get_config() -> Dictionary:
+	return {"table_number": table_number}
+
+
+func apply_config(config: Dictionary) -> void:
+	table_number = config.get("table_number", table_number)
+
+
+func is_empty() -> bool:
+	return _state == State.EMPTY
+
+
+## Force-resets the whole state machine so a table mid-service (a seated
+## customer, a ticket out, a plate being eaten, cash waiting) can still be
+## relocated — frees anything real (ticket/plate), hides the rest, and rearms
+## the next-customer timer exactly like a freshly freed-up table would.
+func clear_contents() -> void:
+	if _ticket != null:
+		_ticket.queue_free()
+		_ticket = null
+	if _plate != null:
+		_plate.queue_free()
+		_plate = null
+	_customer.visible = false
+	_want_label.visible = false
+	_cash.visible = false
+	_result.visible = false
+	_pending_value = 0
+	_state = State.EMPTY
+	_timer = randf_range(spawn_delay_min, spawn_delay_max)
 
 
 func get_inspect_text() -> String:

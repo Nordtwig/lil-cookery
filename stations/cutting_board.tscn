@@ -30,6 +30,8 @@ size = Vector3(1.08, 0.98, 1.08)
 
 [sub_resource type="StandardMaterial3D" id="gauge_bg_mat"]
 shading_mode = 0
+no_depth_test = true
+render_priority = 0
 albedo_color = Color(0.08, 0.08, 0.09, 1)
 
 [sub_resource type="BoxMesh" id="gauge_bg_mesh"]
@@ -38,6 +40,8 @@ size = Vector3(0.8, 0.03, 0.14)
 
 [sub_resource type="StandardMaterial3D" id="perfect_mat"]
 shading_mode = 0
+no_depth_test = true
+render_priority = 1
 albedo_color = Color(0.30, 0.85, 0.35, 1)
 
 [sub_resource type="BoxMesh" id="perfect_mesh"]

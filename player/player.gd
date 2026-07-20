@@ -12,9 +12,38 @@ const ACCELERATION := 22.0
 const TURN_SPEED := 12.0
 const GRAVITY := 20.0
 
+## Grid-based station relocation ("build mode"), only allowed in
+## GameState.Phase.MORNING (see AppShortcuts' F6 debug toggle until the real
+## day-phase skeleton exists). A held station is never the live node — it's
+## despawned into {scene, config}. What follows the player is a real (but
+## inert and shrunk) copy of that same station, so you can see exactly what
+## you're carrying; a separate floor-level square is the green/red
+## can-I-place-it-here signal, kept apart from the carried model itself.
+const _BUILD_GHOST_SCALE := 0.7
+const _BUILD_INDICATOR_SIZE := Vector2(0.9, 0.9)
+const _BUILD_INDICATOR_Y := 0.02
+const _BUILD_GHOST_FREE_COLOR := Color(0.25, 0.85, 0.35, 0.6)
+const _BUILD_GHOST_BLOCKED_COLOR := Color(0.85, 0.25, 0.2, 0.6)
+const _CLEARING_TINT := Color(0.95, 0.65, 0.15, 0.45)
+## Deliberate hold to confirm lifting a non-empty station (it clears first) —
+## long enough that a quick tap can never trigger it by accident.
+const _CLEAR_HOLD_DURATION := 0.4
+
 var held_item: Item = null
 
 var _target: Station = null
+
+var _carrying_scene: PackedScene = null
+var _carrying_config: Dictionary = {}
+var _carrying_y := 0.45
+## The carried preview itself — a real, inert copy of the station scene (see
+## _show_build_ghost). Separate from _build_indicator, the floor-level
+## validity square.
+var _build_ghost: Station = null
+var _build_indicator: MeshInstance3D = null
+
+var _pending_clear_station: Station = null
+var _clear_press_elapsed := 0.0
 
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
 @onready var _hold_point: Marker3D = $HoldPoint
@@ -63,6 +92,7 @@ func _physics_process(delta: float) -> void:
 			_target.action(self)
 		if Input.is_action_pressed(prefix + "_action"):
 			_target.action_hold(self, delta)
+	_handle_build_input(prefix, delta)
 
 
 func take_item(item: Item) -> void:
@@ -80,6 +110,138 @@ func drop_item() -> Item:
 ## Player — InspectPanel uses this to show info about what you're facing.
 func get_target() -> Station:
 	return _target
+
+
+## Build mode: not yet carrying a station -> tap picks up an empty one under
+## the target, or arms a deliberate hold to clear-then-lift a non-empty one.
+## Carrying one -> the ghost follows the cell ahead; tap places it there if
+## free. Only available during GameState.Phase.MORNING (the day-phase
+## skeleton isn't built yet — this reads whatever AppShortcuts' debug toggle
+## currently has it set to).
+func _handle_build_input(prefix: String, delta: float) -> void:
+	if _carrying_scene != null:
+		_update_build_ghost()
+		if Input.is_action_just_pressed(prefix + "_build"):
+			_try_place_station()
+		return
+
+	if _target == null or GameState.phase != GameState.Phase.MORNING or held_item != null:
+		_cancel_pending_clear()
+		return
+
+	if Input.is_action_just_pressed(prefix + "_build"):
+		if _target.is_empty():
+			_pickup_station(_target)
+			return
+		_pending_clear_station = _target
+		_clear_press_elapsed = 0.0
+		_target.set_highlight_tint(_CLEARING_TINT)
+
+	if _pending_clear_station != null:
+		if _pending_clear_station != _target or not Input.is_action_pressed(prefix + "_build"):
+			_cancel_pending_clear()
+		else:
+			_clear_press_elapsed += delta
+			if _clear_press_elapsed >= _CLEAR_HOLD_DURATION:
+				var station := _pending_clear_station
+				_cancel_pending_clear()
+				station.clear_contents()
+				_pickup_station(station)
+
+
+func _cancel_pending_clear() -> void:
+	if _pending_clear_station != null:
+		_pending_clear_station.clear_highlight_tint()
+		_pending_clear_station = null
+		_clear_press_elapsed = 0.0
+
+
+## Despawns a station into {scene, config} and hands the player a ghost to
+## carry instead — the station is never carried live, so nothing about its
+## collision/targeting/slot state has to survive a "held" limbo.
+func _pickup_station(station: Station) -> void:
+	_cancel_pending_clear()
+	_carrying_scene = load(station.scene_file_path)
+	_carrying_config = station.get_config()
+	_carrying_y = station.global_position.y
+	_target = null
+	station.remove_highlight()
+	station.queue_free()
+	_show_build_ghost()
+
+
+func _try_place_station() -> void:
+	var cell := _build_target_cell()
+	if StationGrid.is_occupied(cell):
+		return
+	var station: Station = _carrying_scene.instantiate()
+	station.apply_config(_carrying_config)
+	station.position = StationGrid.cell_to_world(cell, _carrying_y)
+	get_tree().current_scene.add_child(station)
+	_carrying_scene = null
+	_carrying_config = {}
+	_hide_build_ghost()
+
+
+## One cell in front of the player, matching the "-Z is forward" convention
+## used for targeting elsewhere.
+func _build_target_cell() -> Vector2i:
+	return StationGrid.world_to_cell(global_position - global_basis.z * 1.0)
+
+
+## Builds a real, inert copy of the station scene being carried — same
+## model, shrunk a bit, so it's obvious what you're holding. _is_ghost skips
+## grid registration (its position changes every frame), zeroed collision
+## keeps it untargetable, and freezing process/physics_process stops any
+## per-type background behavior (a Table's customer-seating timer, a gauge's
+## visibility tick) from running on what's meant to be frozen scenery.
+func _show_build_ghost() -> void:
+	var ghost: Station = _carrying_scene.instantiate()
+	ghost._is_ghost = true
+	ghost.collision_layer = 0
+	ghost.collision_mask = 0
+	ghost.apply_config(_carrying_config)
+	add_child(ghost)
+	ghost.set_process(false)
+	ghost.set_physics_process(false)
+	ghost.scale = Vector3.ONE * _BUILD_GHOST_SCALE
+	ghost.top_level = true
+	_build_ghost = ghost
+
+	var indicator := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = _BUILD_INDICATOR_SIZE
+	indicator.mesh = plane
+	var mat := StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	indicator.material_override = mat
+	indicator.top_level = true
+	add_child(indicator)
+	_build_indicator = indicator
+
+
+## The ghost is scene-specific (a Crate looks nothing like a Table), so
+## there's no "reuse" case — every pickup gets a fresh one, freed here.
+func _hide_build_ghost() -> void:
+	if _build_ghost != null:
+		_build_ghost.queue_free()
+		_build_ghost = null
+	if _build_indicator != null:
+		_build_indicator.queue_free()
+		_build_indicator = null
+
+
+func _update_build_ghost() -> void:
+	if _build_ghost == null:
+		return
+	var cell := _build_target_cell()
+	var occupied := StationGrid.is_occupied(cell)
+	_build_ghost.global_position = StationGrid.cell_to_world(cell, _carrying_y)
+	_build_indicator.global_position = StationGrid.cell_to_world(cell, _BUILD_INDICATOR_Y)
+	_build_indicator.material_override.albedo_color = (
+		_BUILD_GHOST_BLOCKED_COLOR if occupied else _BUILD_GHOST_FREE_COLOR
+	)
 
 
 func _update_target() -> void:

@@ -26,6 +26,7 @@ var _restocking := false
 
 
 func _ready() -> void:
+	super._ready()
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Ingredients.color_for(item_type)
 	_content_mesh.material_override = mat
@@ -66,7 +67,33 @@ func _try_restock() -> void:
 	_restocking = true
 	GameState.add_money(-restock_cost)
 	await get_tree().create_timer(restock_delay).timeout
+	# clear_contents() (a grid-based relocation, mid-restock) sets _restocking
+	# back to false to signal "this is stale now" — known rough edge, not
+	# actively cancelled, since moving a crate mid-restock is a rare,
+	# self-inflicted timing case, not a normal flow.
+	if not _restocking:
+		return
 	stock = max_stock
+	_restocking = false
+
+
+## The per-instance identity a respawned Crate needs back — which ingredient
+## it dispenses. max_stock/restock_cost/restock_delay aren't included: no
+## instance in the kitchen overrides them today, so there's nothing to carry.
+func get_config() -> Dictionary:
+	return {"item_type": item_type}
+
+
+func apply_config(config: Dictionary) -> void:
+	item_type = config.get("item_type", item_type)
+
+
+func is_empty() -> bool:
+	return stock <= 0 and not _restocking
+
+
+func clear_contents() -> void:
+	stock = 0
 	_restocking = false
 
 

@@ -268,3 +268,13 @@ func get_inspect_text() -> String:
 	if held_item != null:
 		return held_item.get_inspect_text()
 	return ""
+
+
+func is_empty() -> bool:
+	return held_item == null
+
+
+func clear_contents() -> void:
+	if held_item != null:
+		held_item.queue_free()
+		held_item = null

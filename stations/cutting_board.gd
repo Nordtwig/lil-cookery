@@ -39,8 +39,13 @@ var _fill_mat: StandardMaterial3D
 
 
 func _ready() -> void:
+	super._ready()
 	_fill_mat = StandardMaterial3D.new()
 	_fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_fill_mat.no_depth_test = true
+	# See CookStation's _ready for why this needs an explicit render_priority
+	# above the BG(0)/PerfectZone(1) gauge layers.
+	_fill_mat.render_priority = 2
 	_fill_mesh.material_override = _fill_mat
 	_gauge.visible = false
 
