@@ -57,7 +57,11 @@ var _steps: Array = []
 var _step_index := 0
 var _prep_scores := {}  # Ingredients.Verb -> float (0..1)
 
-@onready var _mesh: MeshInstance3D = $Mesh
+## Node3D, not MeshInstance3D — a simple ingredient's Mesh is one MeshInstance3D
+## directly, but one built from an imported model (see mozzarella.tscn) is a
+## whole instanced scene wrapping its own MeshInstance3D. Everything below only
+## ever needs Node3D's API (visible, tree walking), so either shape works.
+@onready var _mesh: Node3D = $Mesh
 @onready var _pieces: Node3D = $Pieces
 @onready var _season_marks: Node3D = $SeasonMarks
 

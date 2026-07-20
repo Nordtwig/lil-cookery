@@ -27,10 +27,10 @@ const DEFS := {
 		"steps": [Verb.CHOP],  # eaten raw — diced, never cooked
 		"scene": "res://items/tomato.tscn",
 	},
-	"cheese": {
-		"color": Color(0.96, 0.78, 0.30),
+	"mozzarella": {
+		"color": Color(0.95, 0.93, 0.87),  # fresh mozzarella white, not aged/yellow
 		"steps": [Verb.CHOP],  # "chop" == slice; no cooking
-		"scene": "res://items/cheese.tscn",
+		"scene": "res://items/mozzarella.tscn",
 	},
 	"bread_loaf": {
 		"color": Color(0.82, 0.62, 0.36),  # bakes pale tan -> golden -> charred

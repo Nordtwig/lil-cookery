@@ -247,6 +247,13 @@ func get_inspect_text() -> String:
 		if _tagged_table_number > 0:
 			header += "T%d · " % _tagged_table_number
 		header += _tagged_dish.to_upper()
+	elif not components.is_empty():
+		# Untagged, but happens to exactly match a recipe already — inspect-only
+		# (not the floating checklist, which stays reserved for an actual tag),
+		# and worded "(matches)" so it doesn't read as a real tag.
+		var matched := Recipes.matching_dish(components.map(func(c): return c.item_type))
+		if matched != "":
+			header += " - %s (matches)" % matched.to_upper()
 	if components.is_empty():
 		return header + " (empty)"
 	var lines := [header]

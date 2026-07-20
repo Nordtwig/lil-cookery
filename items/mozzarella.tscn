@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://items/item.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://clg4upwrux2n4" path="res://items/mozzarella_raw.glb" id="2_raw"]
+[ext_resource type="PackedScene" uid="uid://ldrxon5uih51" path="res://items/mozzarella_cut.glb" id="3_cut"]
+
+[sub_resource type="BoxMesh" id="mark_mesh"]
+size = Vector3(0.05, 0.05, 0.05)
+
+[node name="Mozzarella" type="Node3D"]
+script = ExtResource("1_script")
+item_type = "mozzarella"
+
+[node name="Mesh" parent="." instance=ExtResource("2_raw")]
+
+[node name="Pieces" parent="." instance=ExtResource("3_cut")]
+visible = false
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
+
+[node name="Mark1" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.04, 0.18, -0.02)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark2" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 0.2, 0.02)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark3" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, 0.22, 0.04)
+mesh = SubResource("mark_mesh")
