@@ -77,6 +77,7 @@ var _result_home: Vector3
 
 func _ready() -> void:
 	super._ready()
+	add_to_group("tables")
 	_result_home = _result.position
 	_result.visible = false
 	_customer.visible = false
@@ -84,14 +85,25 @@ func _ready() -> void:
 	_cash.visible = false
 	_state = State.EMPTY
 	_timer = randf() * initial_delay_max
+	GameState.phase_changed.connect(_on_phase_changed)
+
+
+## Re-stagger an already-empty table's wait at the start of each service, so
+## a table that happened to hit zero (or go negative) while SERVICE was
+## closed doesn't seat someone the instant the sign flips — keeps the same
+## ebb-and-flow spread every day, not just the first.
+func _on_phase_changed(phase: GameState.Phase) -> void:
+	if phase == GameState.Phase.SERVICE and _state == State.EMPTY:
+		_timer = randf() * initial_delay_max
 
 
 func _process(delta: float) -> void:
 	match _state:
 		State.EMPTY:
-			_timer -= delta
-			if _timer <= 0.0:
-				_seat_customer()
+			if GameState.phase == GameState.Phase.SERVICE and not GameState.closing_out:
+				_timer -= delta
+				if _timer <= 0.0 and GameState.consume_guest():
+					_seat_customer()
 		State.EATING:
 			_eat_timer -= delta
 			if _eat_timer <= 0.0:
@@ -171,12 +183,38 @@ func get_inspect_text() -> String:
 		State.WAITING:
 			if _order_revealed:
 				return "TABLE %d\nWants: %s" % [table_number, _dish.to_upper()]
-			return "TABLE %d\n(seated — grab a ticket to see their order)" % table_number
+			return "TABLE %d\n(seated - grab a ticket to see their order)" % table_number
 		State.EATING:
 			return "TABLE %d\nEnjoying their %s" % [table_number, _dish.to_upper()]
 		State.PAID:
-			return "TABLE %d\nPaid $%d — collect it" % [table_number, _pending_value]
+			return "TABLE %d\nPaid $%d - collect it" % [table_number, _pending_value]
 	return "TABLE %d\n(empty)" % table_number
+
+
+## Called once by GameState._start_closing_out()'s sweep, the instant the
+## guest pool empties (or the sign closes early) — if this table happens to
+## already be WAITING at that exact moment, the customer leaves with no
+## penalty, same as any other unserved table. A no-op otherwise, including
+## for a table that's mid-draw of the very guest that triggered the sweep —
+## GameState calls this before that table's own _seat_customer() has run,
+## so it's still EMPTY here, not WAITING (see consume_guest()'s ordering
+## note — getting this backwards once kicked a customer the instant they
+## sat down).
+func leave_if_waiting() -> void:
+	if _state == State.WAITING:
+		_leave_unserved()
+
+
+## Deliberately doesn't rearm _timer — no new seatings happen once
+## closing_out is true (consume_guest() refuses them), so there's nothing
+## left to time.
+func _leave_unserved() -> void:
+	if _ticket != null:
+		_ticket.queue_free()
+		_ticket = null
+	_customer.visible = false
+	_want_label.visible = false
+	_state = State.EMPTY
 
 
 func _seat_customer() -> void:

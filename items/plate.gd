@@ -243,7 +243,7 @@ func evaluate(required: Array, base_type: String = "") -> Dictionary:
 func get_inspect_text() -> String:
 	var header := "PLATE"
 	if _tagged_dish != "":
-		header += " — "
+		header += " - "
 		if _tagged_table_number > 0:
 			header += "T%d · " % _tagged_table_number
 		header += _tagged_dish.to_upper()

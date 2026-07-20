@@ -45,6 +45,14 @@ var _build_indicator: MeshInstance3D = null
 var _pending_clear_station: Station = null
 var _clear_press_elapsed := 0.0
 
+## Set by a station (currently only OrderDesk) to fully take over this
+## player's input for a UI panel. While non-null, movement/targeting/normal
+## station dispatch/build mode all pause; the capturing node owns 100% of
+## interaction semantics and reads this player's input directly (same
+## poll-by-player_id convention SlotStation already uses for its own
+## tap/hold timing), via handle_input(self, delta) each physics frame.
+var ui_capture: Node = null
+
 @onready var _body_mesh: MeshInstance3D = $BodyMesh
 @onready var _hold_point: Marker3D = $HoldPoint
 @onready var _reach: Area3D = $Reach
@@ -57,6 +65,21 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if ui_capture != null:
+		# Stay grounded and stationary rather than freezing entirely — no
+		# horizontal drift, but gravity still applies so a capture started
+		# mid-air (shouldn't happen on this flat kitchen floor, but just in
+		# case) doesn't leave the player floating.
+		velocity.x = 0.0
+		velocity.z = 0.0
+		if is_on_floor():
+			velocity.y = 0.0
+		else:
+			velocity.y -= GRAVITY * delta
+		move_and_slide()
+		ui_capture.handle_input(self, delta)
+		return
+
 	var prefix := "p%d" % player_id
 	var input := Input.get_vector(
 		prefix + "_move_left", prefix + "_move_right",
@@ -84,13 +107,20 @@ func _physics_process(delta: float) -> void:
 	if _target != null:
 		# interact = pickup/place (tap take/place/peel, hold take-whole-dispenser);
 		# action = operate a tool (tap trigger e.g. flip, hold e.g. chop).
+		#
+		# _target is re-checked before each call below, not just once up
+		# front: interact(self) can itself clear _target mid-frame (e.g.
+		# OrderDesk.interact() -> start_ui_capture() nulls it out to drop
+		# the stale highlight) — and since is_action_pressed is still true
+		# on the very same frame is_action_just_pressed fired, the next
+		# line would otherwise call a method on a freshly-nulled _target.
 		if Input.is_action_just_pressed(prefix + "_interact"):
 			_target.interact(self)
-		if Input.is_action_pressed(prefix + "_interact"):
+		if _target != null and Input.is_action_pressed(prefix + "_interact"):
 			_target.interact_hold(self, delta)
-		if Input.is_action_just_pressed(prefix + "_action"):
+		if _target != null and Input.is_action_just_pressed(prefix + "_action"):
 			_target.action(self)
-		if Input.is_action_pressed(prefix + "_action"):
+		if _target != null and Input.is_action_pressed(prefix + "_action"):
 			_target.action_hold(self, delta)
 	_handle_build_input(prefix, delta)
 
@@ -110,6 +140,21 @@ func drop_item() -> Item:
 ## Player — InspectPanel uses this to show info about what you're facing.
 func get_target() -> Station:
 	return _target
+
+
+## Hands this player's input over to a UI panel (currently only OrderDesk).
+## Clears the current target/highlight first — the player isn't "browsing"
+## stations anymore while captured, so a stale highlighted target shouldn't
+## linger.
+func start_ui_capture(capture: Node) -> void:
+	if _target != null:
+		_target.remove_highlight()
+		_target = null
+	ui_capture = capture
+
+
+func end_ui_capture() -> void:
+	ui_capture = null
 
 
 ## Build mode: not yet carrying a station -> tap picks up an empty one under

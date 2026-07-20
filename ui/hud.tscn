@@ -12,3 +12,11 @@ offset_right = 220.0
 offset_bottom = 70.0
 theme_override_font_sizes/font_size = 40
 text = "$0"
+
+[node name="Phase" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 70.0
+offset_right = 420.0
+offset_bottom = 110.0
+theme_override_font_sizes/font_size = 24
+text = "Day 1 - MORNING"

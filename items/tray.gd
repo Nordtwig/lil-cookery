@@ -107,7 +107,7 @@ func _arrange() -> void:
 func get_inspect_text() -> String:
 	if contents.is_empty():
 		return "TRAY (empty)"
-	var lines := ["TRAY (%d/%d) — %s" % [contents.size(), _MAX_CAPACITY, contents[0].item_type.capitalize()]]
+	var lines := ["TRAY (%d/%d) - %s" % [contents.size(), _MAX_CAPACITY, contents[0].item_type.capitalize()]]
 	for c in contents:
 		lines.append("- %s: %d%%" % [c.item_type.capitalize(), int(round(c.quality_value() * 100))])
 	return "\n".join(lines)

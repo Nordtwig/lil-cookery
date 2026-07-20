@@ -1,12 +1,15 @@
 class_name Crate
 extends Station
 
-## Ingredient storage (fridge/cupboard) — a finite stock, not an Overcooked-
-## style infinite crate. Interact with free hands to take an item, depleting
-## stock by one. Once empty, interacting again triggers an emergency restock:
-## a short delay, a money cost, then the bin refills to max_stock. This is
-## the design doc's "express delivery" pressure valve (§6b), standing in for
-## the real day/night ordering system until that exists. Carrying a matching,
+## Ingredient storage (fridge/cupboard) — no hard ceiling on stock, but you
+## still have to actually put stock in there: interact with free hands to
+## take an item, depleting stock by one. Once empty, interacting again
+## triggers an emergency restock: a short delay, a money cost, then a small
+## fixed injection of fresh stock (restock_amount) — a quick top-up, not a
+## refill. This is the design doc's "express delivery" pressure valve (§6b)
+## — the mid-service panic option, deliberately smaller and pricier per unit
+## than planned ordering at the night OrderDesk (receive_delivery below),
+## which is the calmer default path for real quantity. Carrying a matching,
 ## still-unmodified ingredient and interacting instead puts it back — undoes
 ## the dispense, no cost, no delay, since nothing was actually spent on it.
 ##
@@ -15,7 +18,8 @@ extends Station
 ## taps batch-fill a tray without a hand-then-merge round trip each time.
 
 @export var item_type := "tomato"
-@export var max_stock := 8
+@export var starting_stock := 8
+@export var restock_amount := 4
 @export var restock_cost := 6
 @export var restock_delay := 3.0
 
@@ -27,10 +31,18 @@ var _restocking := false
 
 func _ready() -> void:
 	super._ready()
+	add_to_group("crates")
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Ingredients.color_for(item_type)
 	_content_mesh.material_override = mat
-	stock = max_stock
+	stock = starting_stock
+
+
+## Adds ordered stock at the morning delivery (GameState._deliver_orders) —
+## no ceiling; the OrderDesk itself is the only place quantity gets decided,
+## bounded by what the player can actually afford, not by bin capacity.
+func receive_delivery(qty: int) -> void:
+	stock += qty
 
 
 func interact(player: Player) -> void:
@@ -43,7 +55,7 @@ func interact(player: Player) -> void:
 		item.item_type = item_type
 		player.take_item(item)
 		stock -= 1
-	elif carried.item_type == item_type and carried.is_unmodified() and stock < max_stock:
+	elif carried.item_type == item_type and carried.is_unmodified():
 		player.drop_item()
 		carried.queue_free()
 		stock += 1
@@ -73,13 +85,14 @@ func _try_restock() -> void:
 	# self-inflicted timing case, not a normal flow.
 	if not _restocking:
 		return
-	stock = max_stock
+	stock += restock_amount
 	_restocking = false
 
 
 ## The per-instance identity a respawned Crate needs back — which ingredient
-## it dispenses. max_stock/restock_cost/restock_delay aren't included: no
-## instance in the kitchen overrides them today, so there's nothing to carry.
+## it dispenses. starting_stock/restock_amount/restock_cost/restock_delay
+## aren't included: no instance in the kitchen overrides them today, so
+## there's nothing to carry.
 func get_config() -> Dictionary:
 	return {"item_type": item_type}
 
@@ -100,4 +113,4 @@ func clear_contents() -> void:
 func get_inspect_text() -> String:
 	if _restocking:
 		return "%s\nRestocking..." % item_type.to_upper()
-	return "%s\nStock: %d/%d\nRestock cost: $%d" % [item_type.to_upper(), stock, max_stock, restock_cost]
+	return "%s\nStock: %d\nEmergency restock: +%d for $%d" % [item_type.to_upper(), stock, restock_amount, restock_cost]
