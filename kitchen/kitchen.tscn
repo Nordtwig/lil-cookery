@@ -2,11 +2,10 @@
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://stations/counter.tscn" id="2_counter"]
-[ext_resource type="PackedScene" path="res://stations/crate.tscn" id="3_crate"]
 [ext_resource type="PackedScene" path="res://stations/cook_station.tscn" id="4_cook"]
 [ext_resource type="PackedScene" path="res://stations/plate_stack.tscn" id="5_plates"]
 [ext_resource type="PackedScene" path="res://stations/table.tscn" id="6_table"]
-[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="7_hud"]
+[ext_resource type="PackedScene" uid="uid://ddro4mmivxbkk" path="res://ui/hud.tscn" id="7_hud"]
 [ext_resource type="PackedScene" path="res://stations/cutting_board.tscn" id="8_board"]
 [ext_resource type="PackedScene" path="res://stations/spice_rack.tscn" id="9_spice_rack"]
 [ext_resource type="PackedScene" path="res://ui/inspect_panel.tscn" id="10_inspect"]
@@ -21,6 +20,8 @@
 [ext_resource type="PackedScene" path="res://stations/invoice_folder.tscn" id="20_invoice_folder"]
 [ext_resource type="PackedScene" path="res://stations/ledger_desk.tscn" id="22_ledger_desk"]
 [ext_resource type="PackedScene" path="res://stations/bookkeeping_computer.tscn" id="23_bookkeeping_computer"]
+[ext_resource type="PackedScene" path="res://stations/shelf.tscn" id="24_shelf"]
+[ext_resource type="PackedScene" path="res://stations/bay_stack.tscn" id="25_bay_stack"]
 
 [sub_resource type="Environment" id="environment"]
 background_mode = 1
@@ -34,55 +35,84 @@ albedo_color = Color(0.45, 0.41, 0.38, 1)
 
 [sub_resource type="BoxMesh" id="floor_mesh"]
 material = SubResource("floor_mat")
-size = Vector3(15.6, 0.2, 9.1)
+size = Vector3(17.6, 0.2, 10.6)
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
-size = Vector3(15.6, 0.2, 9.1)
+size = Vector3(17.6, 0.2, 10.6)
+
+[sub_resource type="StandardMaterial3D" id="bay_mat"]
+albedo_color = Color(0.36, 0.34, 0.3, 1)
+
+[sub_resource type="PlaneMesh" id="bay_mesh"]
+material = SubResource("bay_mat")
+size = Vector2(3, 3)
 
 [sub_resource type="StandardMaterial3D" id="wall_mat"]
 albedo_color = Color(0.58, 0.55, 0.52, 1)
 
-[sub_resource type="BoxMesh" id="wall_x_mesh"]
+[sub_resource type="BoxMesh" id="wall_north_mesh"]
 material = SubResource("wall_mat")
-size = Vector3(16, 1.2, 1)
+size = Vector3(18.997559, 1.2, 1)
 
-[sub_resource type="BoxShape3D" id="wall_x_shape"]
-size = Vector3(16, 1.2, 1)
+[sub_resource type="BoxShape3D" id="wall_north_shape"]
+size = Vector3(18.985352, 1.2, 1)
 
 [sub_resource type="BoxMesh" id="wall_south_west_mesh"]
 material = SubResource("wall_mat")
-size = Vector3(7, 1.2, 1)
+size = Vector3(6, 1.2, 1)
 
 [sub_resource type="BoxShape3D" id="wall_south_west_shape"]
-size = Vector3(7, 1.2, 1)
+size = Vector3(6, 1.2, 1)
 
 [sub_resource type="BoxMesh" id="wall_south_east_mesh"]
 material = SubResource("wall_mat")
-size = Vector3(8, 1.2, 1)
+size = Vector3(12, 1.2, 1)
 
 [sub_resource type="BoxShape3D" id="wall_south_east_shape"]
-size = Vector3(8, 1.2, 1)
+size = Vector3(12, 1.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_r5mvt"]
+material = SubResource("wall_mat")
+size = Vector3(1, 1.2, 11)
+
+[sub_resource type="BoxShape3D" id="wall_z_shape"]
+size = Vector3(1, 1.2, 7)
 
 [sub_resource type="BoxMesh" id="wall_z_mesh"]
 material = SubResource("wall_mat")
-size = Vector3(1, 1.2, 10.5)
+size = Vector3(1, 1.2, 7)
 
-[sub_resource type="BoxShape3D" id="wall_z_shape"]
-size = Vector3(1, 1.2, 10.5)
-
-[sub_resource type="BoxMesh" id="officewall_up_mesh"]
+[sub_resource type="BoxMesh" id="BoxMesh_qpeg4"]
 material = SubResource("wall_mat")
-size = Vector3(1, 1.2, 5.15)
+size = Vector3(1, 1.2, 2)
 
-[sub_resource type="BoxShape3D" id="officewall_up_shape"]
-size = Vector3(1, 1.2, 5.15)
-
-[sub_resource type="BoxMesh" id="officewall_lo_mesh"]
+[sub_resource type="BoxMesh" id="divider_end_mesh"]
 material = SubResource("wall_mat")
-size = Vector3(1, 1.2, 1.65)
+size = Vector3(1, 1.2, 2)
 
-[sub_resource type="BoxShape3D" id="officewall_lo_shape"]
-size = Vector3(1, 1.2, 1.65)
+[sub_resource type="BoxShape3D" id="divider_end_shape"]
+size = Vector3(1, 1.2, 2)
+
+[sub_resource type="BoxMesh" id="divider_mid_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(1, 1.2, 4)
+
+[sub_resource type="BoxShape3D" id="divider_mid_shape"]
+size = Vector3(1, 1.2, 4)
+
+[sub_resource type="BoxMesh" id="storagewall_west_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(1, 1.2, 1)
+
+[sub_resource type="BoxShape3D" id="storagewall_west_shape"]
+size = Vector3(1, 1.2, 1)
+
+[sub_resource type="BoxMesh" id="storagewall_east_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(5, 1.2, 1)
+
+[sub_resource type="BoxShape3D" id="storagewall_east_shape"]
+size = Vector3(5, 1.2, 1)
 
 [node name="Kitchen" type="Node3D" unique_id=1510658405]
 
@@ -95,12 +125,12 @@ light_energy = 0.7
 shadow_enabled = true
 
 [node name="Camera" type="Camera3D" parent="." unique_id=2139624209]
-transform = Transform3D(1, 0, 0, 0, 0.6157, 0.788, 0, -0.788, 0.6157, 1.5, 11.5, 9.2)
+transform = Transform3D(1, 0, 0, 0, 0.6157, 0.788, 0, -0.788, 0.6157, 3, 13.6, 11.9)
 current = true
 fov = 48.0
 
 [node name="Floor" type="StaticBody3D" parent="." unique_id=691877067]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -0.1, -0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -0.1, 0.5)
 
 [node name="Mesh" type="MeshInstance3D" parent="Floor" unique_id=1447097801]
 mesh = SubResource("floor_mesh")
@@ -108,68 +138,111 @@ mesh = SubResource("floor_mesh")
 [node name="Shape" type="CollisionShape3D" parent="Floor" unique_id=424380416]
 shape = SubResource("floor_shape")
 
+[node name="BayFloor" type="MeshInstance3D" parent="." unique_id=900000020]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.992044, 0.01, -2)
+mesh = SubResource("bay_mesh")
+
 [node name="WallNorth" type="StaticBody3D" parent="." unique_id=313673218]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0.6, -5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, -5)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallNorth" unique_id=365783273]
-mesh = SubResource("wall_x_mesh")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.010986328, 0, 0)
+mesh = SubResource("wall_north_mesh")
 
 [node name="Shape" type="CollisionShape3D" parent="WallNorth" unique_id=1752742214]
-shape = SubResource("wall_x_shape")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.027832031, 0, 0)
+shape = SubResource("wall_north_shape")
 
 [node name="WallSouthWest" type="StaticBody3D" parent="." unique_id=1374357496]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.6, 4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.6, 6)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallSouthWest" unique_id=1673267626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
 mesh = SubResource("wall_south_west_mesh")
 
 [node name="Shape" type="CollisionShape3D" parent="WallSouthWest" unique_id=336043159]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
 shape = SubResource("wall_south_west_shape")
 
 [node name="WallSouthEast" type="StaticBody3D" parent="." unique_id=900000007]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0.6, 4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.6, 6)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallSouthEast" unique_id=900000008]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
 mesh = SubResource("wall_south_east_mesh")
 
 [node name="Shape" type="CollisionShape3D" parent="WallSouthEast" unique_id=900000009]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
 shape = SubResource("wall_south_east_shape")
 
 [node name="WallWest" type="StaticBody3D" parent="." unique_id=1985606223]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.6, -0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.6, 0.5)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallWest" unique_id=1808777534]
-mesh = SubResource("wall_z_mesh")
+mesh = SubResource("BoxMesh_r5mvt")
 
 [node name="Shape" type="CollisionShape3D" parent="WallWest" unique_id=1916120764]
 shape = SubResource("wall_z_shape")
 
 [node name="WallEast" type="StaticBody3D" parent="." unique_id=1491268685]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.6, -0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.6, 0.5)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallEast" unique_id=497212708]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.4993896)
 mesh = SubResource("wall_z_mesh")
 
+[node name="Mesh2" type="MeshInstance3D" parent="WallEast" unique_id=1413469131]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5.0006104)
+mesh = SubResource("BoxMesh_qpeg4")
+
 [node name="Shape" type="CollisionShape3D" parent="WallEast" unique_id=1902593347]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.4482422)
 shape = SubResource("wall_z_shape")
 
-[node name="OfficeWallUpper" type="StaticBody3D" parent="." unique_id=927953121]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.6, -2.075)
+[node name="DividerNorth" type="StaticBody3D" parent="." unique_id=927953121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.6, -3.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="OfficeWallUpper" unique_id=1697581505]
-mesh = SubResource("officewall_up_mesh")
+[node name="Mesh" type="MeshInstance3D" parent="DividerNorth" unique_id=1697581505]
+mesh = SubResource("divider_end_mesh")
 
-[node name="Shape" type="CollisionShape3D" parent="OfficeWallUpper" unique_id=1541819999]
-shape = SubResource("officewall_up_shape")
+[node name="Shape" type="CollisionShape3D" parent="DividerNorth" unique_id=1541819999]
+shape = SubResource("divider_end_shape")
 
-[node name="OfficeWallLower" type="StaticBody3D" parent="." unique_id=1504721730]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.6, 3.325)
+[node name="DividerMid" type="StaticBody3D" parent="." unique_id=1504721730]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.6, 0.5)
 
-[node name="Mesh" type="MeshInstance3D" parent="OfficeWallLower" unique_id=2015797008]
-mesh = SubResource("officewall_lo_mesh")
+[node name="Mesh" type="MeshInstance3D" parent="DividerMid" unique_id=2015797008]
+mesh = SubResource("divider_mid_mesh")
 
-[node name="Shape" type="CollisionShape3D" parent="OfficeWallLower" unique_id=452429762]
-shape = SubResource("officewall_lo_shape")
+[node name="Shape" type="CollisionShape3D" parent="DividerMid" unique_id=452429762]
+shape = SubResource("divider_mid_shape")
+
+[node name="DividerSouth" type="StaticBody3D" parent="." unique_id=900000010]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.6, 4.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="DividerSouth" unique_id=900000011]
+mesh = SubResource("divider_end_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="DividerSouth" unique_id=900000012]
+shape = SubResource("divider_end_shape")
+
+[node name="StorageWallWest" type="StaticBody3D" parent="." unique_id=900000013]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.6, 1)
+
+[node name="Mesh" type="MeshInstance3D" parent="StorageWallWest" unique_id=900000014]
+mesh = SubResource("storagewall_west_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="StorageWallWest" unique_id=900000015]
+shape = SubResource("storagewall_west_shape")
+
+[node name="StorageWallEast" type="StaticBody3D" parent="." unique_id=900000016]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.6, 1)
+
+[node name="Mesh" type="MeshInstance3D" parent="StorageWallEast" unique_id=900000017]
+mesh = SubResource("storagewall_east_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="StorageWallEast" unique_id=900000018]
+shape = SubResource("storagewall_east_shape")
 
 [node name="Counters" type="Node3D" parent="." unique_id=83872602]
 
@@ -183,29 +256,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -3)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -2)
 
 [node name="TrayFridge2" parent="Counters" unique_id=791012841 instance=ExtResource("13_tray_fridge")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -1)
-
-[node name="TomatoCrate" parent="Counters" unique_id=1149329530 instance=ExtResource("3_crate")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, -4)
-
-[node name="MozzarellaCrate" parent="Counters" unique_id=881866383 instance=ExtResource("3_crate")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, -3)
-item_type = "mozzarella"
-
-[node name="BreadCrate" parent="Counters" unique_id=1848007654 instance=ExtResource("3_crate")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, -2)
-item_type = "bread_loaf"
-
-[node name="MeatCrate" parent="Counters" unique_id=2046475793 instance=ExtResource("3_crate")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, -1)
-item_type = "meat"
-
-[node name="LettuceCrate" parent="Counters" unique_id=816780432 instance=ExtResource("3_crate")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, 0)
-item_type = "lettuce_head"
-
-[node name="Trashcan" parent="Counters" unique_id=1081489529 instance=ExtResource("11_trash")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.45, -4)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 1, 0.45, -4)
 
 [node name="CounterN1" parent="Counters" unique_id=900000001 instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.45, -4)
@@ -216,14 +267,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.45, -4)
 [node name="CounterN2" parent="Counters" unique_id=1048557779 instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, -4)
 
-[node name="CounterN3" parent="Counters" unique_id=299424997 instance=ExtResource("2_counter")]
+[node name="BoardE" parent="Counters" unique_id=603794720 instance=ExtResource("8_board")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -4)
 
-[node name="BoardE" parent="Counters" unique_id=603794720 instance=ExtResource("8_board")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, -4)
+[node name="SpiceRack" parent="Counters" unique_id=644345600 instance=ExtResource("9_spice_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -4)
 
-[node name="ReceiptSpike" parent="Counters" unique_id=900000002 instance=ExtResource("19_receipt_spike")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -1)
+[node name="Trashcan" parent="Counters" unique_id=1081489529 instance=ExtResource("11_trash")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.45, -4)
 
 [node name="PlateStack" parent="Counters" unique_id=354415060 instance=ExtResource("5_plates")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.45, -1)
@@ -237,46 +288,90 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, -1)
 [node name="CounterN7" parent="Counters" unique_id=874387461 instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -1)
 
-[node name="IslandC" parent="Counters" unique_id=496913889 instance=ExtResource("2_counter")]
+[node name="ReceiptSpike" parent="Counters" unique_id=900000002 instance=ExtResource("19_receipt_spike")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, -1)
 
-[node name="SpiceRack" parent="Counters" unique_id=644345600 instance=ExtResource("9_spice_rack")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -4)
-
 [node name="TrayRack" parent="Counters" unique_id=629827190 instance=ExtResource("12_tray_rack")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.45, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, -1)
 
-[node name="OpenSign" parent="Counters" unique_id=1600681593 instance=ExtResource("14_open_sign")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.45, 4.4911103)
+[node name="ShelfTomato" parent="Counters" unique_id=1149329530 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, -4)
+starting_crate_type = "tomato"
+
+[node name="ShelfMozzarella" parent="Counters" unique_id=881866383 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.45, -4)
+starting_crate_type = "mozzarella"
+
+[node name="ShelfBread" parent="Counters" unique_id=1848007654 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.45, -4)
+starting_crate_type = "bread_loaf"
+
+[node name="ShelfMeat" parent="Counters" unique_id=2046475793 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.45, -4)
+starting_crate_type = "meat"
+
+[node name="ShelfS1" parent="Counters" unique_id=900000021 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, 0)
+
+[node name="ShelfS2" parent="Counters" unique_id=900000022 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.45, 0)
+starting_crate_type = "lettuce_head"
+
+[node name="ShelfS3" parent="Counters" unique_id=900000023 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.45, 0)
+
+[node name="ShelfS4" parent="Counters" unique_id=900000024 instance=ExtResource("24_shelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.45, 0)
+
+[node name="BayStack1" parent="Counters" unique_id=900000026 instance=ExtResource("25_bay_stack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.45, -3)
+
+[node name="BayStack2" parent="Counters" unique_id=900000027 instance=ExtResource("25_bay_stack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.45, -3)
+
+[node name="BayStack3" parent="Counters" unique_id=900000028 instance=ExtResource("25_bay_stack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.45, -2)
+
+[node name="BayStack4" parent="Counters" unique_id=900000029 instance=ExtResource("25_bay_stack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.45, -2)
+
+[node name="BayStack5" parent="Counters" unique_id=900000030 instance=ExtResource("25_bay_stack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.45, -1)
+
+[node name="BayStack6" parent="Counters" unique_id=900000031 instance=ExtResource("25_bay_stack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.45, -1)
+
+[node name="InvoiceFolder" parent="Counters" unique_id=900000004 instance=ExtResource("20_invoice_folder")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.45, -4)
+
+[node name="LedgerDesk" parent="Counters" unique_id=900000005 instance=ExtResource("22_ledger_desk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.45, 2)
+
+[node name="BookkeepingComputer" parent="Counters" unique_id=900000006 instance=ExtResource("23_bookkeeping_computer")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.45, 2)
+desk_path = NodePath("../LedgerDesk")
+
+[node name="OrderDesk" parent="Counters" unique_id=655465758 instance=ExtResource("16_order_desk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.45, 5)
 
 [node name="Bed" parent="Counters" unique_id=484821735 instance=ExtResource("15_bed")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.016325, 0.45, 3.4845483)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.45, 4)
 
 [node name="Till" parent="Counters" unique_id=900000003 instance=ExtResource("17_till")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.45, 2)
 
-[node name="LedgerDesk" parent="Counters" unique_id=900000005 instance=ExtResource("22_ledger_desk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.45, 0)
-
-[node name="BookkeepingComputer" parent="Counters" unique_id=900000006 instance=ExtResource("23_bookkeeping_computer")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.45, 0)
-desk_path = NodePath("../LedgerDesk")
-
-[node name="OrderDesk" parent="Counters" unique_id=655465758 instance=ExtResource("16_order_desk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.45, -3)
-
-[node name="InvoiceFolder" parent="Counters" unique_id=900000004 instance=ExtResource("20_invoice_folder")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.45, -2)
+[node name="OpenSign" parent="Counters" unique_id=1600681593 instance=ExtResource("14_open_sign")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 6)
 
 [node name="Table1" parent="." unique_id=149960536 instance=ExtResource("6_table")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.25, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 2)
 
 [node name="Table2" parent="." unique_id=744887168 instance=ExtResource("6_table")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.25, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.25, 4)
 table_number = 2
 
 [node name="Table3" parent="." unique_id=595508040 instance=ExtResource("6_table")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.25, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.25, 4)
 table_number = 3
 
 [node name="HUD" parent="." unique_id=1723186408 instance=ExtResource("7_hud")]
@@ -302,10 +397,10 @@ grow_horizontal = 0
 player_id = 2
 
 [node name="Player1" parent="." unique_id=743813322 instance=ExtResource("1_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3186276, 0.050000954, 0.5481775)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.05, -2.5)
 player_color = Color(0.31, 0.616, 1, 1)
 
 [node name="Player2" parent="." unique_id=1846613129 instance=ExtResource("1_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.9450207, 0.05, -3.9431562)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.05, -2)
 player_id = 2
 player_color = Color(1, 0.616, 0.31, 1)

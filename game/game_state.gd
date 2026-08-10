@@ -280,11 +280,43 @@ func end_night() -> void:
 	set_phase(Phase.MORNING)
 
 
+const _CRATE_SCENE := preload("res://items/crate.tscn")
+
+## How much stock one delivered crate holds — matches Crate's own
+## starting_stock default, so "qty" here still means the same thing it
+## always did (an ingredient count, what OrderDesk prices and displays),
+## just packaged into physical crates now instead of silently topping up an
+## existing bin.
+const _DELIVERY_CRATE_SIZE := 8
+
+
+## Spawns real Crate items into whatever loading-bay CrateStacks have room
+## (2026-08-11 — crates became carryable Items rather than fixed stations,
+## so a delivery can no longer just top up an existing bin in place; it has
+## to physically land somewhere). Large orders split across multiple
+## crates, each up to _DELIVERY_CRATE_SIZE. If the bay is full, whatever
+## doesn't fit is simply lost — the loading-bay overflow system (an
+## indicator + a way to reclaim it once space clears) is parked, see
+## backlog.md; Noah's own call that this is fine to defer for now.
 func _deliver_orders() -> void:
 	if pending_deliveries.is_empty():
 		return
-	for crate in get_tree().get_nodes_in_group("crates"):
-		var qty: int = pending_deliveries.get(crate.item_type, 0)
-		if qty > 0:
-			crate.receive_delivery(qty)
+	for item_type in pending_deliveries:
+		var remaining: int = pending_deliveries[item_type]
+		while remaining > 0:
+			var crate_stock := mini(remaining, _DELIVERY_CRATE_SIZE)
+			if not _place_delivery_crate(item_type, crate_stock):
+				break
+			remaining -= crate_stock
 	pending_deliveries.clear()
+
+
+func _place_delivery_crate(item_type: String, stock_amount: int) -> bool:
+	for stack in get_tree().get_nodes_in_group("bay_stacks"):
+		if stack.has_room():
+			var crate: Crate = _CRATE_SCENE.instantiate()
+			crate.contained_type = item_type
+			crate.starting_stock = stock_amount
+			stack.add_crate(crate)
+			return true
+	return false

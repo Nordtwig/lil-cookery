@@ -74,6 +74,20 @@ static func steps_for(type: String) -> Array:
 	return DEFS.get(type, {}).get("steps", [])
 
 
+## Types a Crate can actually be stocked with — anything with a real prep
+## chain of its own (steps non-empty). Excludes finished portions (bread,
+## lettuce) and transform-only types (toasted_bread), which are only ever
+## reached by dispensing/toasting an actual crate ingredient, never ordered
+## or delivered directly. What OrderDesk's row list and GameState's delivery
+## spawner both read.
+static func stockable_types() -> Array[String]:
+	var out: Array[String] = []
+	for type in DEFS:
+		if not steps_for(type).is_empty():
+			out.append(type)
+	return out
+
+
 static func color_for(type: String) -> Color:
 	return DEFS.get(type, {}).get("color", Color.WHITE)
 

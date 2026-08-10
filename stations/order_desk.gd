@@ -19,11 +19,14 @@ extends Station
 ## other player is completely unaffected — their own Player instance never
 ## touches this station's input handling at all.
 ##
-## The ingredient row list is read live from whatever Crates actually exist
-## in the "crates" group, not a hardcoded list — stays in sync automatically
-## if ingredients are ever added/removed. Crates have no stock ceiling, so
-## quantity here isn't capped either — the only real constraint is what you
-## can afford at confirm time.
+## The ingredient row list is read from Ingredients.stockable_types() — every
+## real whole ingredient with its own prep chain, not a hardcoded list, and
+## not tied to any Crate actually existing in the world (2026-08-11: crates
+## became carryable Items rather than fixed stations, so there's no longer a
+## "crates" group to scan — the orderable list is a fact about what
+## ingredients exist, not about what's currently sitting on a shelf).
+## Delivered crates have no stock ceiling, so quantity here isn't capped
+## either — the only real constraint is what you can afford at confirm time.
 
 ## Debounce for held up/down/left/right — a deliberate hold-to-repeat feel
 ## (common menu-navigation shape) without flying through rows/amounts at
@@ -70,10 +73,7 @@ func _row_count() -> int:
 
 
 func _open_desk(player: Player) -> void:
-	_item_types = []
-	for crate in get_tree().get_nodes_in_group("crates"):
-		if crate.item_type not in _item_types:
-			_item_types.append(crate.item_type)
+	_item_types = Ingredients.stockable_types()
 	_item_types.sort()
 	if _item_types.is_empty():
 		return
