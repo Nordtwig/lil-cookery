@@ -5,18 +5,28 @@
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_script")
 
-[node name="Money" type="Label" parent="."]
+[node name="Account" type="Label" parent="."]
 offset_left = 24.0
 offset_top = 18.0
 offset_right = 220.0
 offset_bottom = 70.0
 theme_override_font_sizes/font_size = 40
+pivot_offset = Vector2(98, 26)
 text = "$0"
+
+[node name="Today" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 72.0
+offset_right = 220.0
+offset_bottom = 100.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 26
+text = "?"
 
 [node name="Phase" type="Label" parent="."]
 offset_left = 24.0
-offset_top = 70.0
+offset_top = 104.0
 offset_right = 420.0
-offset_bottom = 110.0
+offset_bottom = 144.0
 theme_override_font_sizes/font_size = 24
 text = "Day 1 - MORNING"

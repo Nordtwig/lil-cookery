@@ -254,6 +254,10 @@ func _serve(player: Player) -> void:
 	_plate = plate
 	_pending_value = res.value
 	_pending_band = res.band
+	# Recorded at serve, not collect — a receipt marks the order as sold the
+	# instant it's fulfilled, independent of when anyone actually walks over
+	# to pick up the cash.
+	GameState.record_receipt(res.value)
 	_state = State.EATING
 	_eat_timer = randf_range(eat_duration_min, eat_duration_max)
 	_want_label.visible = false
@@ -272,6 +276,7 @@ func _finish_eating() -> void:
 
 func _collect() -> void:
 	GameState.add_money(_pending_value)
+	GameState.record_cash(_pending_value)
 	_cash.visible = false
 	_pop_label("+$%d" % _pending_value, Color(0.30, 0.85, 0.35, 1))
 	_pending_value = 0

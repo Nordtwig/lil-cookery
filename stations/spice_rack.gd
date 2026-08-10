@@ -70,6 +70,7 @@ func _try_restock() -> void:
 		return
 	_restocking = true
 	GameState.add_money(-restock_cost)
+	GameState.record_invoice_spend(restock_cost)
 	await get_tree().create_timer(restock_delay).timeout
 	# See Crate._try_restock for why this checks _restocking rather than
 	# assuming the restock it kicked off is still the live one.

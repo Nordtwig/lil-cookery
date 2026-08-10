@@ -78,6 +78,7 @@ func _try_restock() -> void:
 		return
 	_restocking = true
 	GameState.add_money(-restock_cost)
+	GameState.record_invoice_spend(restock_cost)
 	await get_tree().create_timer(restock_delay).timeout
 	# clear_contents() (a grid-based relocation, mid-restock) sets _restocking
 	# back to false to signal "this is stale now" — known rough edge, not

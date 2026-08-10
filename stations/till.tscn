@@ -1,0 +1,58 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://stations/ledger_accumulator.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://items/ledger_slip_cash.tscn" id="2_slip"]
+
+[sub_resource type="StandardMaterial3D" id="body_mat"]
+albedo_color = Color(0.35, 0.32, 0.30, 1)
+
+[sub_resource type="BoxMesh" id="body_mesh"]
+material = SubResource("body_mat")
+size = Vector3(1, 0.9, 1)
+
+[sub_resource type="BoxShape3D" id="body_shape"]
+size = Vector3(1, 0.9, 1)
+
+[sub_resource type="StandardMaterial3D" id="pile_mat"]
+albedo_color = Color(0.88, 0.74, 0.18, 1)
+metallic = 0.4
+roughness = 0.35
+
+[sub_resource type="CylinderMesh" id="pile_mesh"]
+material = SubResource("pile_mat")
+top_radius = 0.26
+bottom_radius = 0.3
+height = 0.4
+
+[sub_resource type="StandardMaterial3D" id="highlight_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.35, 0.3)
+
+[sub_resource type="BoxMesh" id="highlight_mesh"]
+material = SubResource("highlight_mat")
+size = Vector3(1.08, 0.98, 1.08)
+
+[node name="Till" type="StaticBody3D"]
+collision_layer = 5
+collision_mask = 0
+script = ExtResource("1_script")
+category = "cash"
+display_name = "TILL"
+pile_cap = 70
+slip_scene = ExtResource("2_slip")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("body_mesh")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+shape = SubResource("body_shape")
+
+[node name="Pile" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
+mesh = SubResource("pile_mesh")
+
+[node name="Highlight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+visible = false
+mesh = SubResource("highlight_mesh")

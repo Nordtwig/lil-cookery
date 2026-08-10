@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://items/ledger_slip.gd" id="1_script"]
+
+[sub_resource type="BoxMesh" id="invoices_mesh"]
+size = Vector3(0.22, 0.05, 0.16)
+
+[node name="LedgerSlipInvoices" type="Node3D"]
+script = ExtResource("1_script")
+color = Color(0.78, 0.62, 0.32, 1)
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+mesh = SubResource("invoices_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.10, 0)
+pixel_size = 0.0016
+font_size = 32
+outline_size = 0
+modulate = Color(0.15, 0.13, 0.1, 1)
+text = ""
