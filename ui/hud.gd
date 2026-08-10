@@ -7,6 +7,12 @@ extends CanvasLayer
 ## payoff the bookkeeping chore itself is built around. `Today` shows "?"
 ## until then, then the day's net, then slides up and merges into Account
 ## while it ticks toward the new total — the reveal moment Noah asked for.
+##
+## `Today` itself is only visible from SERVICE start through whenever the
+## books get filed (silently or via the reveal) — there's nothing to report
+## yet during MORNING, so showing "?" then would just be noise. It goes
+## invisible again the instant it merges into Account (or, on a silent
+## auto-close, immediately) and stays that way until the next SERVICE.
 
 const _REVEAL_DURATION := 0.7
 
@@ -30,7 +36,18 @@ func _ready() -> void:
 	_account_label.text = "$%d" % GameState.money
 	_today_home = _today_label.position
 	_account_home = _account_label.position
+	_today_label.visible = GameState.phase != GameState.Phase.MORNING
 	GameState.books_filed.connect(_on_books_filed)
+	GameState.phase_changed.connect(_on_phase_changed)
+
+
+func _on_phase_changed(phase: GameState.Phase) -> void:
+	if phase != GameState.Phase.SERVICE:
+		return
+	_today_label.visible = true
+	_today_label.position = _today_home
+	_today_label.modulate = Color(0.7, 0.7, 0.7, 1)
+	_today_label.text = "?"
 
 
 func _process(_delta: float) -> void:
@@ -49,6 +66,7 @@ func _on_books_filed(net: int, silent: bool) -> void:
 		# is what forfeits that in the first place.
 		_account_display = GameState.money
 		_account_label.text = "$%d" % GameState.money
+		_today_label.visible = false
 		return
 
 	_today_label.position = _today_home
@@ -81,6 +99,7 @@ func _finish_reveal() -> void:
 	tween.tween_property(_account_label, "scale", Vector2(1.15, 1.15), 0.08)
 	tween.tween_property(_account_label, "scale", Vector2.ONE, 0.12)
 
+	_today_label.visible = false
 	_today_label.position = _today_home
 	_today_label.modulate = Color(0.7, 0.7, 0.7, 1)
 	_today_label.text = "?"
