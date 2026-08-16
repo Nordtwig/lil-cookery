@@ -27,6 +27,11 @@ extends Station
 ## ingredients exist, not about what's currently sitting on a shelf).
 ## Delivered crates have no stock ceiling, so quantity here isn't capped
 ## either — the only real constraint is what you can afford at confirm time.
+##
+## Equipment.types() (2026-08-14) — durable supplies like a spice shaker,
+## priced at their own fixed cost via GameState.unit_cost_for() rather than
+## the flat per-ingredient order_unit_cost — are appended after the
+## ingredient rows, same list, same navigation/adjustment/confirm flow.
 
 ## Debounce for held up/down/left/right — a deliberate hold-to-repeat feel
 ## (common menu-navigation shape) without flying through rows/amounts at
@@ -73,8 +78,11 @@ func _row_count() -> int:
 
 
 func _open_desk(player: Player) -> void:
-	_item_types = Ingredients.stockable_types()
-	_item_types.sort()
+	var ingredient_types := Ingredients.stockable_types()
+	ingredient_types.sort()
+	var equipment_types := Equipment.types()
+	equipment_types.sort()
+	_item_types = ingredient_types + equipment_types
 	if _item_types.is_empty():
 		return
 	_amounts = []
@@ -131,7 +139,7 @@ func _adjust(delta_qty: int) -> void:
 func _confirm(player: Player) -> void:
 	var total_cost := 0
 	for i in _item_types.size():
-		total_cost += _amounts[i] * GameState.order_unit_cost
+		total_cost += _amounts[i] * GameState.unit_cost_for(_item_types[i])
 	if GameState.money < total_cost:
 		# Can't afford the order as configured — refuse the whole thing
 		# rather than silently placing a partial order; adjust amounts down
@@ -160,8 +168,10 @@ func _update_panel() -> void:
 	for i in _item_types.size():
 		var marker := ">" if i == _row else " "
 		var qty := _amounts[i]
-		total += qty * GameState.order_unit_cost
-		lines.append("%s %s: %d" % [marker, _item_types[i].capitalize(), qty])
+		var item_type := _item_types[i]
+		total += qty * GameState.unit_cost_for(item_type)
+		var label := Equipment.display_name_for(item_type) if Equipment.is_equipment(item_type) else item_type.capitalize()
+		lines.append("%s %s: %d" % [marker, label, qty])
 	var confirm_marker := ">" if _row == _confirm_row() else " "
 	lines.append("%s CONFIRM ORDER" % confirm_marker)
 	lines.append("Total: $%d" % total)

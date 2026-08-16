@@ -30,12 +30,15 @@ var phase: Phase = Phase.MORNING
 ## How many days have passed — increments each time Bed sends NIGHT -> MORNING.
 var day := 1
 
-## Placeholder tuning number ("let's say 4 for now") — real pacing is
-## backlog item 26's job, not this skeleton's. Total guests across all
+## Placeholder tuning number, bumped 2026-08-14 (was 4) now that a table
+## seats a whole weighted-size party at once rather than one guest at a
+## time — at draw_party_size()'s current weights (~1.95 guests/party on
+## average), the old value was only ever two parties a day. Real pacing is
+## still backlog item 26's job, not this skeleton's. Total guests across all
 ## tables for the whole day, not per-table.
-var guests_per_day := 4
+var guests_per_day := 16
 
-## Drawn down by consume_guest() as tables seat customers; only meaningful
+## Drawn down by consume_party() as tables seat parties; only meaningful
 ## during SERVICE. Read by the HUD.
 var guests_remaining := 0
 
@@ -141,8 +144,8 @@ func record_receipt(amount: int) -> void:
 	ledger_receipts += amount
 
 
-## Called for any ingredient purchase — an emergency restock (Crate/
-## SpiceRack) or a planned OrderDesk order alike. Same category either way.
+## Called for any purchase — a Crate's emergency restock or a planned
+## OrderDesk order alike (ingredient or Equipment). Same category either way.
 func record_invoice_spend(amount: int) -> void:
 	ledger_invoices += amount
 
@@ -205,10 +208,28 @@ func _auto_close_books() -> void:
 	books_filed.emit(net, true)
 
 
-## Called by a Table right before it seats a new customer. Returns false (and
-## the table shouldn't seat anyone) once the day's pool is exhausted — the
-## pool-based replacement for a time-based clock. Triggers closing_out the
-## instant the last guest is drawn, same shape a clock hitting zero would.
+## Weighted party-size draw for a table about to seat (2026-08-14, backlog
+## item 30) — Noah's own placeholder numbers, a real balance pass is item
+## 26's job: 2 guests most common, then 1, then 3, then 4 (rare). Independent
+## of guests_remaining — consume_party() below clamps against the pool.
+func draw_party_size() -> int:
+	var roll := randf()
+	if roll < 0.30:
+		return 1
+	elif roll < 0.80:
+		return 2
+	elif roll < 0.95:
+		return 3
+	return 4
+
+
+## Called by a Table right before it seats a party. The multi-guest
+## generalization of the old single-guest consume_guest() (deleted — this
+## replaces it) — draws up to `requested_size` from the day's pool, returning
+## the actual number seated, which can be smaller than requested if the pool's
+## nearly dry (never negative, never seats nobody unless the pool was already
+## empty). Triggers closing_out the instant the pool empties, same shape a
+## clock hitting zero would.
 ##
 ## Order matters here: this runs and returns BEFORE the calling Table's own
 ## _seat_customer() ever executes (see Table._process's EMPTY branch), so
@@ -216,13 +237,14 @@ func _auto_close_books() -> void:
 ## mid-draw — it's still EMPTY at sweep time, not WAITING yet. Getting this
 ## backwards once already kicked a customer the instant they sat down,
 ## because they were literally the guest whose arrival emptied the pool.
-func consume_guest() -> bool:
+func consume_party(requested_size: int) -> int:
 	if phase != Phase.SERVICE or closing_out or guests_remaining <= 0:
-		return false
-	guests_remaining -= 1
+		return 0
+	var actual := mini(requested_size, guests_remaining)
+	guests_remaining -= actual
 	if guests_remaining <= 0:
 		_start_closing_out()
-	return true
+	return actual
 
 
 ## Called by OpenSign when flipped again mid-SERVICE — forces closing_out
@@ -242,7 +264,7 @@ func close_early() -> void:
 ## closing_out itself once set), plus a one-time sweep — anyone ALREADY
 ## WAITING right now leaves immediately, no penalty. Deliberately a single
 ## sweep, not an ongoing per-frame check: no table can newly become WAITING
-## after this point anyway (consume_guest() refuses once closing_out is
+## after this point anyway (consume_party() refuses once closing_out is
 ## true), so there's nothing left to keep watching for.
 func _start_closing_out() -> void:
 	closing_out = true
@@ -250,13 +272,23 @@ func _start_closing_out() -> void:
 		table.leave_if_waiting()
 
 
+## Per-unit price for a given orderable type — Equipment (a spice shaker) is
+## priced at its own fixed cost, everything else (a real ingredient) at the
+## flat order_unit_cost. What OrderDesk shows per row and what place_order
+## actually charges.
+func unit_cost_for(item_type: String) -> int:
+	if Equipment.is_equipment(item_type):
+		return Equipment.cost_for(item_type)
+	return order_unit_cost
+
+
 ## Called by OrderDesk on confirm. Pays immediately (fails, returns false, if
 ## short on cash — the whole order is refused rather than silently placing a
-## partial one); the actual crate refill is deferred to _deliver_orders().
+## partial one); the actual delivery is deferred to _deliver_orders().
 func place_order(item_type: String, quantity: int) -> bool:
 	if quantity <= 0:
 		return true
-	var cost := quantity * order_unit_cost
+	var cost := quantity * unit_cost_for(item_type)
 	if money < cost:
 		return false
 	add_money(-cost)
@@ -294,20 +326,29 @@ const _DELIVERY_CRATE_SIZE := 8
 ## (2026-08-11 — crates became carryable Items rather than fixed stations,
 ## so a delivery can no longer just top up an existing bin in place; it has
 ## to physically land somewhere). Large orders split across multiple
-## crates, each up to _DELIVERY_CRATE_SIZE. If the bay is full, whatever
-## doesn't fit is simply lost — the loading-bay overflow system (an
-## indicator + a way to reclaim it once space clears) is parked, see
-## backlog.md; Noah's own call that this is fine to defer for now.
+## crates, each up to _DELIVERY_CRATE_SIZE. Equipment types (a spice shaker)
+## aren't crated at all — they arrive as the real item, landing loose on
+## whichever BayStack's ground slot is free (2026-08-14 — see
+## BayStack.place_loose_item; "no unpacking," Noah's call). If the bay is
+## full either way, whatever doesn't fit is simply lost — the loading-bay
+## overflow system (an indicator + a way to reclaim it once space clears) is
+## parked, see backlog.md; Noah's own call that this is fine to defer.
 func _deliver_orders() -> void:
 	if pending_deliveries.is_empty():
 		return
 	for item_type in pending_deliveries:
 		var remaining: int = pending_deliveries[item_type]
-		while remaining > 0:
-			var crate_stock := mini(remaining, _DELIVERY_CRATE_SIZE)
-			if not _place_delivery_crate(item_type, crate_stock):
-				break
-			remaining -= crate_stock
+		if Equipment.is_equipment(item_type):
+			while remaining > 0:
+				if not _place_delivery_equipment(item_type):
+					break
+				remaining -= 1
+		else:
+			while remaining > 0:
+				var crate_stock := mini(remaining, _DELIVERY_CRATE_SIZE)
+				if not _place_delivery_crate(item_type, crate_stock):
+					break
+				remaining -= crate_stock
 	pending_deliveries.clear()
 
 
@@ -319,4 +360,13 @@ func _place_delivery_crate(item_type: String, stock_amount: int) -> bool:
 			crate.starting_stock = stock_amount
 			stack.add_crate(crate)
 			return true
+	return false
+
+
+func _place_delivery_equipment(item_type: String) -> bool:
+	var item: Item = Equipment.scene_for(item_type).instantiate()
+	for stack in get_tree().get_nodes_in_group("bay_stacks"):
+		if stack.place_loose_item(item):
+			return true
+	item.queue_free()
 	return false

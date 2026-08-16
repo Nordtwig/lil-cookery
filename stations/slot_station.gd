@@ -28,6 +28,14 @@ extends Station
 const _TAP_GRACE := 0.15
 const _ORDER_TICKET_SCENE := preload("res://items/order_ticket.tscn")
 
+## If set, this station spawns one instance of this scene into its slot at
+## game start — how a one-time world seed (the kitchen's starting spice
+## shaker, 2026-08-14) gets placed without a bespoke pre-placement mechanism,
+## same "config lives as @export, per-instance" convention Crate's
+## contained_type / CrateStack's starting_crate_type already use. Empty for
+## every station that should just start bare (nearly all of them).
+@export var start_item_scene: PackedScene
+
 ## What's "in the slot" — a plain var for every ordinary single-slot station
 ## (Counter, CookStation, CuttingBoard), but routed through two overridable
 ## methods so a subclass can redirect it elsewhere entirely (TrayFridge points
@@ -55,6 +63,14 @@ var _untag_press_elapsed := 0.0
 ## TrayFridge) has no "Slot" node at all and overrides _slot_marker() instead,
 ## so this is simply never read in that case.
 @onready var _slot: Marker3D = get_node_or_null("Slot")
+
+
+func _ready() -> void:
+	super._ready()
+	if start_item_scene != null:
+		var item: Item = start_item_scene.instantiate()
+		item.attach_to(_slot_marker())
+		held_item = item
 
 
 func _get_held() -> Item:
@@ -109,7 +125,7 @@ func interact(player: Player) -> void:
 		var item := held_item
 		held_item = null
 		carried.absorb(_on_item_removed(item))
-	elif carried != null and held_item != null and carried.can_dispense() and held_item.can_absorb_type(Ingredients.dispenses_for(carried.item_type)):
+	elif carried != null and held_item != null and carried.can_dispense() and held_item.can_absorb_type(carried.dispensed_portion_type()):
 		# Carrying a ready dispenser (a baked loaf, a chopped head), station
 		# holds a container that takes its portions: peel one straight onto
 		# it, skipping the hand — repeated taps empty the whole dispenser
@@ -118,6 +134,20 @@ func interact(player: Player) -> void:
 		if carried.frees_when_empty() and not carried.can_dispense():
 			player.drop_item()
 			carried.queue_free()
+	elif carried != null and held_item != null and held_item.can_dispense() and carried.can_absorb_type(held_item.dispensed_portion_type()):
+		# The mirror direction (2026-08-14 fix — this was missing entirely
+		# since Crate stopped being a Station 2026-08-11, silently dropping its
+		# old bespoke swipe-onto-a-carried-tray code): station holds a
+		# dispenser (a Crate on a shelf, a baked loaf set down mid-prep),
+		# carrying a container that takes its portions — peel one straight
+		# onto it, skipping the hand. Repeated taps swipe a Tray full of an
+		# ingredient straight off a shelf's Crate without a crate-to-hand-to-
+		# tray round trip.
+		var d := held_item
+		carried.absorb(d.dispense(self))
+		if d.frees_when_empty() and not d.can_dispense():
+			held_item = null
+			d.queue_free()
 	elif carried is Plate and (carried as Plate).can_add(held_item):
 		# Carrying a plate, station holds a component: add it to the plate.
 		var comp := held_item
@@ -127,32 +157,50 @@ func interact(player: Player) -> void:
 		# Station holds a plate, carrying a component: add it to the plate.
 		player.drop_item()
 		(held_item as Plate).add_component(carried)
-	elif carried is Spice and (carried as Spice).can_use() and held_item != null and held_item.can_be_seasoned():
-		# Carrying a shaker with charges left: season the item on the
-		# station and spend one charge. The shaker itself is never placed
-		# down here — bring it back to its rack to refill once it's empty.
+	elif carried is Spice and held_item != null and held_item.can_be_seasoned():
+		# Carrying a shaker: season the item on the station. Infinite
+		# uses — the shaker itself is never placed down here.
 		var spice := carried as Spice
 		held_item.season(spice.bonus, spice.color)
-		spice.consume_use()
-	elif carried is Spice and (carried as Spice).can_use() and held_item is Plate:
+	elif carried is Spice and held_item is Plate:
 		# Station holds a plate: season the first seasonable component on it
 		# rather than gluing the shaker onto the plate as clutter.
 		var spice := carried as Spice
-		if (held_item as Plate).season_component(spice.bonus, spice.color):
-			spice.consume_use()
+		(held_item as Plate).season_component(spice.bonus, spice.color)
 	elif carried is OrderTicket and held_item is Plate:
-		# Carrying an order ticket, station holds a plate: tag it. The ticket
-		# is consumed — its job was just to carry the order over.
+		# Carrying an order ticket, station holds a plate: tag it. If the
+		# plate already carried a different tag, that one comes back as a real
+		# ticket in the player's hand (the same ticket object, repurposed)
+		# instead of silently vanishing — a straight swap, never a destroy.
+		# Only a genuinely untagged plate consumes the carried ticket outright.
 		var ticket := carried as OrderTicket
-		(held_item as Plate).tag_order(ticket.dish, ticket.table_number)
-		player.drop_item()
-		carried.queue_free()
+		var plate := held_item as Plate
+		if plate.is_tagged():
+			var old_dish := plate.tagged_dish()
+			var old_table := plate.tagged_table_number()
+			plate.tag_order(ticket.dish, ticket.table_number)
+			ticket.dish = old_dish
+			ticket.table_number = old_table
+		else:
+			plate.tag_order(ticket.dish, ticket.table_number)
+			player.drop_item()
+			carried.queue_free()
 	elif held_item is OrderTicket and carried is Plate:
-		# Station holds a ticket, carrying a plate: same tag, other direction.
+		# Station holds a ticket, carrying a plate: same tag, other direction
+		# — same swap-not-destroy rule if the carried plate already had a
+		# different tag.
 		var ticket := held_item as OrderTicket
-		(carried as Plate).tag_order(ticket.dish, ticket.table_number)
-		held_item.queue_free()
-		held_item = null
+		var plate := carried as Plate
+		if plate.is_tagged():
+			var old_dish := plate.tagged_dish()
+			var old_table := plate.tagged_table_number()
+			plate.tag_order(ticket.dish, ticket.table_number)
+			ticket.dish = old_dish
+			ticket.table_number = old_table
+		else:
+			plate.tag_order(ticket.dish, ticket.table_number)
+			held_item.queue_free()
+			held_item = null
 
 
 func interact_hold(player: Player, delta: float) -> void:

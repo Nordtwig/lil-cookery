@@ -14,10 +14,86 @@ extends CrateStack
 ## active slot here is whichever slot is **currently the top of the real
 ## stack** — the highest occupied index, recomputed every access, falling
 ## back to the floor (0) only once the stack is genuinely empty.
+##
+## Noah's framing, 2026-08-14: "the bay is essentially a desk, but at ground
+## level... I don't see why you shouldn't be allowed to put items down on it,
+## without stacking." So a BayStack with no crates also accepts exactly one
+## loose, non-Crate item straight onto the ground marker (_anchors[0]) —
+## completely separate from the crate-stacking machinery above, no elevator,
+## no cycling. The two are mutually exclusive: a loose item can't be set down
+## while any crate occupies this stack, and a crate can't be placed while a
+## loose item sits here. This is how a delivered piece of Equipment (a spice
+## shaker) lands — see GameState._deliver_orders() / place_loose_item below.
+
+var _loose_item: Item = null
+
 
 func _ready() -> void:
 	super._ready()
 	add_to_group("bay_stacks")
+
+
+func interact(player: Player) -> void:
+	var carried := player.held_item
+	if carried is Crate and _loose_item != null:
+		# The ground slot's taken by a loose item — no starting a crate
+		# stack underneath it until that's cleared.
+		return
+	if carried != null and not (carried is Crate) and _loose_item == null and super.is_empty():
+		_loose_item = player.drop_item()
+		_loose_item.attach_to(_anchors[0])
+		_on_occupancy_changed()
+		return
+	if carried == null and _loose_item != null:
+		player.take_item(_loose_item)
+		_loose_item = null
+		_on_occupancy_changed()
+		return
+	super.interact(player)
+
+
+## The delivery path for a non-Crate orderable (Equipment) — mirrors
+## CrateStack.add_crate()'s shape but for the ground slot instead. Refuses
+## (returns false) if a crate stack or another loose item already occupies
+## this stack.
+func place_loose_item(item: Item) -> bool:
+	if not super.is_empty() or _loose_item != null:
+		return false
+	_loose_item = item
+	item.attach_to(_anchors[0])
+	_on_occupancy_changed()
+	return true
+
+
+func is_empty() -> bool:
+	return super.is_empty() and _loose_item == null
+
+
+func has_room() -> bool:
+	return super.has_room() and _loose_item == null
+
+
+func clear_contents() -> void:
+	super.clear_contents()
+	if _loose_item != null:
+		_loose_item.queue_free()
+		_loose_item = null
+		_on_occupancy_changed()
+
+
+func get_inspect_text() -> String:
+	if _loose_item != null:
+		return "%s\n%s" % [_label(), _loose_item.get_inspect_text()]
+	return super.get_inspect_text()
+
+
+## The programmatic delivery path (GameState._deliver_orders()) bypasses
+## interact() entirely, so it needs its own guard against landing a crate on
+## top of a resting loose item.
+func add_crate(crate: Crate) -> bool:
+	if _loose_item != null:
+		return false
+	return super.add_crate(crate)
 
 
 func _active_index() -> int:

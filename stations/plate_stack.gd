@@ -3,7 +3,8 @@ extends Station
 
 ## An infinite source of empty plates. Carrying an unmodified (still empty)
 ## plate and interacting instead puts it back, same "undo, no cost" shape as
-## returning an ingredient to its Crate.
+## returning an ingredient to its Crate — a tag on that plate survives the
+## return as a real ticket handed back to the player, never destroyed with it.
 ##
 ## Carrying an OrderTicket instead grabs a plate already tagged with that
 ## order — the common case (grab a ticket, then immediately want a plate for
@@ -12,6 +13,7 @@ extends Station
 ## consumes it elsewhere.
 
 const PLATE_SCENE := preload("res://items/plate.tscn")
+const _ORDER_TICKET_SCENE := preload("res://items/order_ticket.tscn")
 
 
 func interact(player: Player) -> void:
@@ -19,7 +21,19 @@ func interact(player: Player) -> void:
 	if carried == null:
 		player.take_item(PLATE_SCENE.instantiate())
 	elif carried is Plate and (carried as Plate).is_unmodified():
-		player.drop_item()
+		# A still-empty plate returns to the (infinite) stack and is freed —
+		# but if it was tagged, that tag comes back as a real ticket in hand
+		# instead of being destroyed along with the plate. Same "swap, never
+		# silently lose it" rule as the tag branches in SlotStation.
+		var plate := carried as Plate
+		if plate.is_tagged():
+			var ticket: OrderTicket = _ORDER_TICKET_SCENE.instantiate()
+			ticket.dish = plate.tagged_dish()
+			ticket.table_number = plate.tagged_table_number()
+			player.drop_item()
+			player.take_item(ticket)
+		else:
+			player.drop_item()
 		carried.queue_free()
 	elif carried is OrderTicket:
 		# tag_order() touches @onready node refs, so the plate needs to already

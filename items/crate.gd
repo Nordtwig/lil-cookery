@@ -63,6 +63,16 @@ func absorb(item: Item) -> void:
 	stock += 1
 
 
+## Overridden because contained_type — not item_type, which a Crate never
+## has — is what actually names the portion this crate hands out. This is
+## the one method a Crate has to override for the generic "station holds a
+## dispenser, carried container swipes a portion straight onto it" path
+## (SlotStation.interact()) to work at all — the base Item implementation
+## infers this from item_type, which is always "" here on purpose.
+func dispensed_portion_type() -> String:
+	return contained_type
+
+
 func dispense(host: Node) -> Item:
 	var portion: Item = Ingredients.scene_for(contained_type).instantiate()
 	portion.item_type = contained_type

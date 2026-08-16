@@ -20,31 +20,33 @@ extends Item
 ## No item_type of its own (like Plate/Spice), so it can never be plated,
 ## seasoned, cooked, or absorbed into anything else.
 ##
-## Two physical layers, forming a pyramid: 8 slots on the tray floor, then 4
-## more nested inward and sitting higher on top of those — a second course
-## stacked on the first, not a bigger footprint. Capacity is exactly 12, the
-## number the two layers can actually show; every slot always holds (or is
-## ready to hold) one real, fully visible item — nothing is ever hidden.
+## One flat layer, 8 slots (2026-08-14 — down from the old two-course
+## 8+4=12 pyramid). Capacity is now **slot cost**, not a flat item count: a
+## plain portion costs 1 slot; a whole dispenser (a raw or baked loaf, a raw
+## or chopped head) costs 2, so at most 4 fit — "bigger" items claim more of
+## the tray, Noah's own framing for why this reads as fair rather than
+## arbitrary ("they contain X amount of ingredients, so could be logically
+## considered bigger... we could see it as them taking up more slots on the
+## tray itself"), and explicitly meant to extend per-type later (a
+## hypothetical future ingredient could cost more than 2). Whole dispensers
+## were previously excluded from trays entirely ("slice the loaf, tray the
+## slices") — that restriction is gone; a tray now holds either portions or
+## whole dispensers (never mixed, same-type-only rule unchanged), and taking
+## one off a tray of dispensers hands over the whole thing — dispense() only
+## ever returns whatever Item is actually stored, so this needed no special
+## casing once can_absorb_type stopped excluding dispenser types.
 
-## Bottom course — a 4×2 grid across the tray floor.
-const _BOTTOM_SLOTS: Array[Vector3] = [
+## A 4×2 grid across the tray floor — the only layer now.
+const _SLOTS: Array[Vector3] = [
 	Vector3(-0.30, 0.06, -0.16), Vector3(-0.10, 0.06, -0.16), Vector3(0.10, 0.06, -0.16), Vector3(0.30, 0.06, -0.16),
 	Vector3(-0.30, 0.06, 0.16), Vector3(-0.10, 0.06, 0.16), Vector3(0.10, 0.06, 0.16), Vector3(0.30, 0.06, 0.16),
 ]
-## Top course — a narrower 2×2 grid, nested inward and raised, resting on
-## the bottom course like a second layer of a pyramid.
-const _TOP_SLOTS: Array[Vector3] = [
-	Vector3(-0.10, 0.16, -0.08), Vector3(0.10, 0.16, -0.08),
-	Vector3(-0.10, 0.16, 0.08), Vector3(0.10, 0.16, 0.08),
-]
-const _SLOTS: Array[Vector3] = _BOTTOM_SLOTS + _TOP_SLOTS
 ## Full size — items on a tray are meant to read as real portions, not
 ## shrunk tokens (only the plate shrinks its components, for its own
 ## presentation reasons).
 const _CONTENT_SCALE := 1.0
-## Exactly what the two courses can show — every item is always real and
-## visible, so capacity can't outrun the display.
-const _MAX_CAPACITY := 12
+## Total slot budget the 8 floor positions represent — not an item count.
+const _SLOT_CAPACITY := 8
 
 var contents: Array[Item] = []
 
@@ -54,9 +56,9 @@ func can_dispense() -> bool:
 
 
 ## Real ingredients only, matching whatever's already in here (anything goes
-## into an empty tray), while there's room. Excludes other trays/plates/
-## spices/tickets (no item_type) and whole dispensers (slice the loaf, tray
-## the slices).
+## into an empty tray), while there's slot room. Excludes other trays/
+## plates/spices/tickets (no item_type); whole dispensers are allowed now,
+## just at double the slot cost of a portion (see _slot_cost).
 func can_absorb(item: Item) -> bool:
 	return item != null and can_absorb_type(item.item_type)
 
@@ -65,11 +67,11 @@ func can_absorb(item: Item) -> bool:
 ## or a carried dispenser (peeling straight onto a tray sitting on a station,
 ## see SlotStation) check the destination before an item exists to check.
 func can_absorb_type(type: String) -> bool:
-	if type == "" or Ingredients.dispenses_for(type) != "":
+	if type == "":
 		return false
-	if contents.size() >= _MAX_CAPACITY:
+	if not (contents.is_empty() or contents[0].item_type == type):
 		return false
-	return contents.is_empty() or contents[0].item_type == type
+	return _used_slots() + _slot_cost(type) <= _SLOT_CAPACITY
 
 
 func absorb(item: Item) -> void:
@@ -79,7 +81,11 @@ func absorb(item: Item) -> void:
 
 
 ## Hands back the most recently added item, full-sized again, with all its
-## state intact — it was never anything but itself while it sat here.
+## state intact — it was never anything but itself while it sat here. For a
+## tray of whole dispensers this hands over the entire dispenser, same as
+## for a tray of portions — there's no partial-item concept here at all,
+## peeling a portion off something the tray holds only ever happens once
+## it's out of the tray and sitting somewhere else.
 func dispense(_host: Node) -> Item:
 	var item: Item = contents.pop_back()
 	item.scale = Vector3.ONE
@@ -97,17 +103,33 @@ func is_unmodified() -> bool:
 	return contents.is_empty()
 
 
+func _used_slots() -> int:
+	var used := 0
+	for c in contents:
+		used += _slot_cost(c.item_type)
+	return used
+
+
+## A whole dispenser (a loaf, a head) costs 2 slots; a plain portion costs 1.
+## The one place this ever needs to change if a future ingredient wants a
+## different cost.
+func _slot_cost(type: String) -> int:
+	return 2 if Ingredients.dispenses_for(type) != "" else 1
+
+
 func _arrange() -> void:
-	for i in contents.size():
-		contents[i].scale = Vector3.ONE * _CONTENT_SCALE
-		contents[i].position = _SLOTS[i]
-		contents[i].rotation = Vector3.ZERO
+	var slot := 0
+	for item in contents:
+		item.scale = Vector3.ONE * _CONTENT_SCALE
+		item.position = _SLOTS[slot]
+		item.rotation = Vector3.ZERO
+		slot += _slot_cost(item.item_type)
 
 
 func get_inspect_text() -> String:
 	if contents.is_empty():
 		return "TRAY (empty)"
-	var lines := ["TRAY (%d/%d) - %s" % [contents.size(), _MAX_CAPACITY, contents[0].item_type.capitalize()]]
+	var lines := ["TRAY (%d/%d slots) - %s" % [_used_slots(), _SLOT_CAPACITY, contents[0].item_type.capitalize()]]
 	for c in contents:
 		lines.append("- %s: %d%%" % [c.item_type.capitalize(), int(round(c.quality_value() * 100))])
 	return "\n".join(lines)

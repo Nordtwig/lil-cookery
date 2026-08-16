@@ -270,7 +270,7 @@ func can_absorb_type(type: String) -> bool:
 	return (
 		is_dispenser()
 		and is_fully_prepped()
-		and type == Ingredients.dispenses_for(item_type)
+		and type == dispensed_portion_type()
 		and uses_left < Ingredients.uses_for(item_type)
 	)
 
@@ -282,12 +282,25 @@ func absorb(item: Item) -> void:
 	uses_left = mini(uses_left + 1, Ingredients.uses_for(item_type))
 
 
+## What type of portion this dispenser hands out — a separate virtual (not
+## just inlining Ingredients.dispenses_for(item_type) at every call site)
+## because Crate needs to answer this from its own contained_type instead:
+## a Crate deliberately carries no item_type of its own (so Plate.can_add
+## can exclude it without special-casing), so Ingredients.dispenses_for
+## would only ever see "" for one. This is what lets SlotStation ask any
+## dispenser — a Crate, a baked loaf, a chopped head — "what do you hand
+## out" generically, without per-type knowledge (e.g. to swipe straight onto
+## a carried Tray, see SlotStation.interact()).
+func dispensed_portion_type() -> String:
+	return Ingredients.dispenses_for(item_type)
+
+
 ## Peel one portion off, returning it. `host` is a scratch parent so a
 ## freshly spawned portion's _ready fires; the caller reparents it right
 ## after (to a hand, a slot). The portion is a genuinely separate item with
 ## its own fresh state, carrying only the whole's earned quality.
 func dispense(host: Node) -> Item:
-	var ptype := Ingredients.dispenses_for(item_type)
+	var ptype := dispensed_portion_type()
 	var portion: Item = Ingredients.scene_for(ptype).instantiate()
 	portion.item_type = ptype
 	host.add_child(portion)

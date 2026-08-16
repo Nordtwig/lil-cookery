@@ -37,6 +37,28 @@ static func random_name() -> String:
 	return DEFS.keys().pick_random()
 
 
+## A slight weight toward ordering the same dish more than once within one
+## party (2026-08-14, backlog item 30) — Noah's ask, framed explicitly as
+## step one toward a future demand forecast: "we probably can't have a fully
+## random or duplicate-weighted order mechanic, it'll have to be played
+## against some average/weighted forecast too." Not built now, but this is
+## the one seam that read has to come from later, so it needs to already be
+## a single function rather than scattered random_name() calls a forecast
+## would otherwise have to hunt down. `_DUPLICATE_CHANCE` is a placeholder
+## like every other economy number here — real tuning is item 26's job.
+static func random_party_order(size: int) -> Array[String]:
+	var dishes: Array[String] = []
+	for i in size:
+		if i > 0 and randf() < _DUPLICATE_CHANCE:
+			dishes.append(dishes[randi() % dishes.size()])
+		else:
+			dishes.append(random_name())
+	return dishes
+
+
+const _DUPLICATE_CHANCE := 0.35
+
+
 ## The dish `item_types` exactly matches (same types, same counts, nothing
 ## extra or missing), or "" if none. Deliberately exact-only, not a "closest
 ## fit while still building" guess — an in-progress plate (e.g. just a slice

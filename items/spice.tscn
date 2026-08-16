@@ -9,6 +9,7 @@ height = 0.26
 
 [node name="Spice" type="Node3D"]
 script = ExtResource("1_script")
+color = Color(0.32, 0.27, 0.22, 1)
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
