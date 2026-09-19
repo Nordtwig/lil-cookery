@@ -8,6 +8,15 @@ extends Station
 ## friendly," no confirmation or two-player requirement.
 
 
+func hints(_player: Player) -> Array[Dictionary]:
+	match GameState.phase:
+		GameState.Phase.MORNING:
+			return [hint("interact", "Open for service")]
+		GameState.Phase.SERVICE:
+			return [hint("interact", "Close early")]
+	return []
+
+
 func interact(_player: Player) -> void:
 	match GameState.phase:
 		GameState.Phase.MORNING:

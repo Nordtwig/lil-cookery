@@ -93,6 +93,18 @@ func action_hold(_player: Player, _delta: float) -> void:
 
 ## Multi-line summary for the inspect panel. "" (the default) means nothing
 ## extra to show beyond what's already visible in the world.
+## What each button would do here right now, for the hint panel: a list of
+## {button, text}, `button` one of "interact", "interact_hold", "action",
+## "action_hold". Empty means nothing to say. Must agree with what the verbs
+## actually do - it names them, never decides them.
+func hints(_player: Player) -> Array[Dictionary]:
+	return []
+
+
+static func hint(button: String, text: String) -> Dictionary:
+	return {"button": button, "text": text}
+
+
 func get_inspect_text() -> String:
 	return ""
 

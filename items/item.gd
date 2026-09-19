@@ -85,6 +85,12 @@ func _ready() -> void:
 	_update_tint()
 
 
+## What a hint calls this - "Potato", "Chicken Piece". Things without an
+## item_type (a plate, a tray) say what they are.
+func hint_name() -> String:
+	return item_type.capitalize() if item_type != "" else "Item"
+
+
 ## The next unfinished prep verb, or -1 if fully prepped.
 func next_verb() -> int:
 	return _steps[_step_index] if _step_index < _steps.size() else -1
@@ -116,6 +122,11 @@ func complete_step(score: float) -> void:
 
 
 # --- COOK step ---
+
+## Seconds to cook this to the top of Perfect, or 0 to use the stove's default.
+func cook_time() -> float:
+	return Ingredients.cook_time_for(item_type)
+
 
 ## Advance cooking by `delta` at the given rate (doneness/sec), re-tinting.
 ## Caps at Burnt so an abandoned item settles at low value, never vanishes.
@@ -229,6 +240,16 @@ func is_unmodified() -> bool:
 func transform_into(new_type: String) -> void:
 	item_type = new_type
 	color = Ingredients.color_for(new_type)
+	# Re-derive the prep chain: a step already scored stays done if the new type
+	# has it too (a roasted bird's bones stay "cooked"); anything else is fresh.
+	_steps = Ingredients.steps_for(new_type)
+	_step_index = 0
+	for verb in _steps:
+		if not _prep_scores.has(verb):
+			break
+		_step_index += 1
+	uses_left = Ingredients.uses_for(new_type) if Ingredients.dispenses_for(new_type) != "" else -1
+	_update_visual_state()
 	_update_tint()
 
 
@@ -248,18 +269,28 @@ func is_dispenser() -> bool:
 	return Ingredients.dispenses_for(item_type) != ""
 
 
-## True if a portion can be peeled off right now: it's a dispenser, its own
-## prep step (baking a loaf, chopping a head) is done, and it still has
-## portions left. A raw loaf/head can't be sliced.
+## True if a portion can be peeled off right now: it's a dispenser with portions
+## left, and either its own prep step (baking a loaf, chopping a head) is done or
+## it's the kind that can be picked raw (a chicken, jointed before roasting).
 func can_dispense() -> bool:
-	return is_dispenser() and is_fully_prepped() and uses_left > 0
+	return is_dispenser() and uses_left > 0 and _ready_to_dispense()
+
+
+func _ready_to_dispense() -> bool:
+	return is_fully_prepped() or Ingredients.dispenses_raw(item_type)
 
 
 ## True if `item` can be merged back in — a portion of the type this whole
 ## dispenses, with room for it. A full dispenser refuses (the item stays in
 ## the player's hand) rather than silently eating the merge.
 func can_absorb(item: Item) -> bool:
-	return item != null and can_absorb_type(item.item_type)
+	# A raw piece goes back into a raw bird, a roasted one into a roasted bird - never
+	# across. Always equal for a finished portion of a finished whole (a slice, a loaf).
+	return (
+		item != null
+		and can_absorb_type(item.item_type)
+		and item.is_fully_prepped() == is_fully_prepped()
+	)
 
 
 ## Type-only variant of can_absorb — whether a portion of `type` could be
@@ -269,7 +300,7 @@ func can_absorb(item: Item) -> bool:
 func can_absorb_type(type: String) -> bool:
 	return (
 		is_dispenser()
-		and is_fully_prepped()
+		and _ready_to_dispense()
 		and type == dispensed_portion_type()
 		and uses_left < Ingredients.uses_for(item_type)
 	)
@@ -298,21 +329,52 @@ func dispensed_portion_type() -> String:
 ## Peel one portion off, returning it. `host` is a scratch parent so a
 ## freshly spawned portion's _ready fires; the caller reparents it right
 ## after (to a hand, a slot). The portion is a genuinely separate item with
-## its own fresh state, carrying only the whole's earned quality.
+## its own fresh state. A finished portion (a slice) carries the whole's
+## earned quality; a portion with prep of its own (a chicken piece) instead
+## carries whichever of its steps the whole has already done, with the
+## whole's scores - a piece off a roasted bird is roasted, off a raw one raw.
+## The last portion may leave a remainder behind (a picked-clean chicken is
+## bones), in which case this item turns into it right here.
 func dispense(host: Node) -> Item:
 	var ptype := dispensed_portion_type()
 	var portion: Item = Ingredients.scene_for(ptype).instantiate()
 	portion.item_type = ptype
 	host.add_child(portion)
-	portion.inherited_quality = quality_value()
+	if Ingredients.steps_for(ptype).is_empty():
+		portion.inherited_quality = quality_value()
+	else:
+		for verb in Ingredients.steps_for(ptype):
+			if step_done(verb):
+				portion.complete_step(_prep_scores[verb])
+				continue
+			# A step in progress but not yet scored (a bird still roasting): the
+			# piece is exactly as far along as the whole, and keeps going from there.
+			if verb == Ingredients.Verb.COOK:
+				portion.doneness = doneness
+			elif verb == Ingredients.Verb.CHOP:
+				portion.chop_progress = chop_progress
+			portion._update_visual_state()
+			portion._update_tint()
+			break
 	uses_left -= 1
+	var remainder := Ingredients.remainder_for(item_type)
+	if uses_left == 0 and remainder != "":
+		transform_into(remainder)
 	return portion
 
 
 ## Whether running out consumes this item. A loaf peeled to its last slice
-## is gone; an emptied container (Tray) persists to be refilled.
+## is gone; an emptied container (Tray) persists to be refilled. A dispenser
+## with a remainder never reaches this - it has already become something else.
 func frees_when_empty() -> bool:
 	return true
+
+
+## True once a dispenser has been used up and should be discarded by whoever
+## holds it. False for anything that was never a dispenser (a remainder, a
+## plain item), still has portions, or persists when empty (a Tray, a Crate).
+func spent() -> bool:
+	return is_dispenser() and not can_dispense() and frees_when_empty()
 
 
 # --- scoring ---

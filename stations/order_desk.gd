@@ -52,6 +52,12 @@ func _ready() -> void:
 	_panel.visible = false
 
 
+func hints(_player: Player) -> Array[Dictionary]:
+	if GameState.phase == GameState.Phase.NIGHT and _open_player == null:
+		return [hint("interact", "Place tomorrow's order")]
+	return []
+
+
 func interact(player: Player) -> void:
 	if GameState.phase != GameState.Phase.NIGHT:
 		return

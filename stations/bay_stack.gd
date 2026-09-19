@@ -131,6 +131,17 @@ func _fill_order() -> Array[int]:
 ## always the real top of the stack, there's nothing a rotation could reveal
 ## that removing the top crate wouldn't already reveal on its own. Unlike a
 ## shelf, nobody manually plans out which bay slot to fill.
+func hints(player: Player) -> Array[Dictionary]:
+	var carried := player.held_item
+	if carried is Crate and _loose_item != null:
+		return []
+	if carried != null and not (carried is Crate) and _loose_item == null and super.is_empty():
+		return [hint("interact", "Put down %s" % carried.hint_name())]
+	if carried == null and _loose_item != null:
+		return [hint("interact", "Pick up %s" % _loose_item.hint_name())]
+	return super.hints(player)
+
+
 func _should_cycle() -> bool:
 	return false
 

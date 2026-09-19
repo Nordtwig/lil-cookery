@@ -133,3 +133,7 @@ func get_inspect_text() -> String:
 	for c in contents:
 		lines.append("- %s: %d%%" % [c.item_type.capitalize(), int(round(c.quality_value() * 100))])
 	return "\n".join(lines)
+
+
+func hint_name() -> String:
+	return "Tray" if contents.is_empty() else "Tray of %s" % contents[0].hint_name()

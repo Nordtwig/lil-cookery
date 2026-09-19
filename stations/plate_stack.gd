@@ -16,6 +16,17 @@ const PLATE_SCENE := preload("res://items/plate.tscn")
 const _ORDER_TICKET_SCENE := preload("res://items/order_ticket.tscn")
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	var carried := player.held_item
+	if carried == null:
+		return [hint("interact", "Take a plate")]
+	if carried is Plate and (carried as Plate).is_unmodified():
+		return [hint("interact", "Put the plate back")]
+	if carried is OrderTicket:
+		return [hint("interact", "Take a plate for this order")]
+	return []
+
+
 func interact(player: Player) -> void:
 	var carried := player.held_item
 	if carried == null:

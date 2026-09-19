@@ -109,6 +109,31 @@ func interact(player: Player) -> void:
 	super.interact(player)
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if player.held_item is Crate and held_item != null:
+		for i in _fill_order():
+			if _slots[i] == null:
+				out.append(hint("interact", "Put %s here" % player.held_item.hint_name()))
+				break
+	if out.is_empty():
+		out = super.hints(player)
+	if _should_cycle() and _count() > 0:
+		out.append(hint("action", "Next crate"))
+	var active := held_item as Crate
+	if active != null and active.stock == 0:
+		out.append(hint("action_hold", "Restock ($%d)" % active.restock_cost))
+	return out
+
+
+func _count() -> int:
+	var n := 0
+	for s in _slots:
+		if s != null:
+			n += 1
+	return n
+
+
 func action(player: Player) -> void:
 	_pending_cycle_player = player
 	_cycle_press_elapsed = 0.0

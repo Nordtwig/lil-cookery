@@ -1,0 +1,35 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/item.gd" id="1_script"]
+
+[sub_resource type="BoxMesh" id="cup_mesh"]
+size = Vector3(0.11, 0.07, 0.07)
+
+[sub_resource type="BoxMesh" id="mark_mesh"]
+size = Vector3(0.03, 0.03, 0.03)
+
+[node name="Sauce" type="Node3D"]
+script = ExtResource("1_script")
+item_type = "sauce"
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.035, 0)
+mesh = SubResource("cup_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
+
+[node name="Mark1" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03, 0.1, -0.02)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark2" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 0.1, 0.01)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark3" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0.03)
+mesh = SubResource("mark_mesh")

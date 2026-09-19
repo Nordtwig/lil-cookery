@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Ingredient" format=3]
+
+[ext_resource type="PackedScene" path="res://items/bread.tscn" id="1_ecm7f"]
+[ext_resource type="Script" path="res://game/ingredient.gd" id="2_gbawy"]
+
+[resource]
+script = ExtResource("2_gbawy")
+color = Color(0.62, 0.4, 0.2, 1)
+scene = ExtResource("1_ecm7f")

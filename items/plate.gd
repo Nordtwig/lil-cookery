@@ -268,3 +268,7 @@ func _band_for(quality: float) -> String:
 	elif quality >= 0.62:
 		return "good"
 	return "poor"
+
+
+func hint_name() -> String:
+	return "Plate"

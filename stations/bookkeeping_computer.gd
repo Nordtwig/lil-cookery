@@ -70,6 +70,14 @@ func _process(_delta: float) -> void:
 ## A quick tap short of a full hold — doesn't advance any work, just tells
 ## the player what's still missing (or that it's already done tonight)
 ## without committing to the hold.
+func hints(_player: Player) -> Array[Dictionary]:
+	if _ready_to_work():
+		return [hint("action_hold", "Do the books")]
+	if GameState.phase == GameState.Phase.NIGHT and not GameState.books_closed:
+		return [hint("action", "What's still needed?")]
+	return []
+
+
 func action(_player: Player) -> void:
 	if GameState.phase != GameState.Phase.NIGHT:
 		return

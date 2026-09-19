@@ -83,6 +83,12 @@ func _process(_delta: float) -> void:
 	_pile.position.y = _pile_bottom_y + (_pile_full_height * scale_y) / 2.0
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	if player.held_item == null and GameState.phase == GameState.Phase.NIGHT and _unclaimed() > 0:
+		return [hint("interact", "Take the %s" % display_name.to_lower())]
+	return []
+
+
 func interact(player: Player) -> void:
 	if player.held_item != null:
 		return

@@ -116,3 +116,7 @@ func get_inspect_text() -> String:
 		return "%s CRATE\n(empty)\nHold action to express-restock: +%d for $%d" % [
 			contained_type.to_upper(), restock_amount, restock_cost]
 	return "%s CRATE\nStock: %d" % [contained_type.to_upper(), stock]
+
+
+func hint_name() -> String:
+	return "Crate of %s" % contained_type.capitalize()

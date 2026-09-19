@@ -9,6 +9,13 @@ extends SlotStation
 ## not tied to any specific placement/removal branch, so it can never be left
 ## running after an item's pulled or forgotten silent while one's cooking).
 ##
+## The burner has a switch. Hold **action** to toggle it; a cold stove is just a
+## counter - whatever sits on it keeps its doneness but doesn't cook. That makes
+## fire-and-forget a choice rather than a property of the food: light a pot in the
+## morning and come back to kill the heat, or forget and let it burn. Tap-action stays
+## the flip catch, so a mistimed flip can never switch the burner off. Every stove
+## starts cold each morning.
+##
 ## Partway through, a "FLIP!" window opens once per cook: catching it with a
 ## tap on **action** adds a quality bonus on top of whatever band you
 ## eventually pull at. Same shape as the cutting board's opt-in timing —
@@ -39,6 +46,11 @@ extends SlotStation
 @export var flip_window_start := 0.45
 @export var flip_window_duration := 1.0
 @export var flip_bonus := 0.1
+## How long action must be held to flip the switch. Longer than any flip-catch tap.
+@export var toggle_hold_time := 0.35
+
+const _BURNER_COLD := Color(0.12, 0.12, 0.13)
+const _BURNER_LIT := Color(0.95, 0.35, 0.12)
 
 ## Doneness a slice must reach before pulling it actually counts as toasted
 ## (and transforms it). Below this it's just a warm slice — no harm, put it
@@ -58,6 +70,14 @@ const _BAND_COLORS := {
 @onready var _fill_mesh: MeshInstance3D = $Gauge/FillPivot/Fill
 @onready var _flip_cue: Label3D = $FlipCue
 @onready var _fry_sound: AudioStreamPlayer3D = $FrySound
+@onready var _burner: MeshInstance3D = $Burner
+
+var burner_on := false
+var _burner_mat: StandardMaterial3D
+## Who is holding action on the switch, and for how long. One toggle per press.
+var _toggle_player: Player = null
+var _toggle_held := 0.0
+var _toggled_this_press := false
 
 var _fill_mat: StandardMaterial3D
 
@@ -81,16 +101,44 @@ func _ready() -> void:
 	_fill_mesh.material_override = _fill_mat
 	_gauge.visible = false
 	_flip_cue.visible = false
+	_burner_mat = StandardMaterial3D.new()
+	_burner.material_override = _burner_mat
+	_update_burner()
+	GameState.phase_changed.connect(_on_phase_changed)
+
+
+func _on_phase_changed(phase: int) -> void:
+	if phase == GameState.Phase.MORNING:
+		set_burner(false)
+
+
+func set_burner(on: bool) -> void:
+	burner_on = on
+	if not on:
+		_close_flip_window()
+	_update_burner()
+
+
+func _update_burner() -> void:
+	_burner_mat.albedo_color = _BURNER_LIT if burner_on else _BURNER_COLD
+	_burner_mat.emission_enabled = burner_on
+	_burner_mat.emission = _BURNER_LIT
+	_burner_mat.emission_energy_multiplier = 1.5
 
 
 func _process(delta: float) -> void:
+	if _toggle_player != null and not Input.is_action_pressed("p%d_action" % _toggle_player.player_id):
+		_toggle_player = null
+		_toggle_held = 0.0
+		_toggled_this_press = false
 	var heating := _is_heating()
 	if heating and not _fry_sound.playing:
 		_fry_sound.play()
 	elif not heating and _fry_sound.playing:
 		_fry_sound.stop()
 	if heating:
-		held_item.cook(delta, 1.0 / cook_duration)
+		var t := held_item.cook_time()
+		held_item.cook(delta, 1.0 / (t if t > 0.0 else cook_duration))
 		_update_gauge()
 		_update_flip_window(delta)
 		return
@@ -100,6 +148,17 @@ func _process(delta: float) -> void:
 func action(_player: Player) -> void:
 	if _flip_open:
 		_catch_flip()
+
+
+func action_hold(player: Player, delta: float) -> void:
+	if _toggle_player != player:
+		_toggle_player = player
+		_toggle_held = 0.0
+		_toggled_this_press = false
+	_toggle_held += delta
+	if _toggle_held >= toggle_hold_time and not _toggled_this_press:
+		_toggled_this_press = true
+		set_burner(not burner_on)
 
 
 func _catch_flip() -> void:
@@ -158,15 +217,17 @@ func _score_and_lock(item: Item) -> float:
 
 
 func _is_heating() -> bool:
-	return held_item != null and (_can_cook(held_item) or _can_toast(held_item))
+	return burner_on and held_item != null and (_can_cook(held_item) or _can_toast(held_item))
 
 
 ## True both the first time (COOK is the pending step) and for a resumed item
 ## that's already been cooked once (COOK recorded, but doneness carries forward
-## so more heat keeps having an effect). A finished dispenser (a baked loaf)
-## is excluded — it's done and meant to be sliced, not re-cooked to charcoal.
+## so more heat keeps having an effect). A finished dispenser (a baked loaf, a
+## roasted bird) is excluded — it's done and meant to be sliced, not re-cooked
+## to charcoal. A raw bird can be jointed but still needs roasting, so the
+## test is "finished", not "can dispense".
 func _can_cook(item: Item) -> bool:
-	if item.can_dispense():
+	if item.is_dispenser() and item.is_fully_prepped():
 		return false
 	return item.has_step(Ingredients.Verb.COOK) and (
 		item.next_verb() == Ingredients.Verb.COOK
@@ -179,6 +240,20 @@ func _can_cook(item: Item) -> bool:
 ## its own) still cooks on a stove: a fresh heat on its own clock.
 func _can_toast(item: Item) -> bool:
 	return item != null and Ingredients.toasts_into(item.item_type) != ""
+
+
+func hints(player: Player) -> Array[Dictionary]:
+	var out := super.hints(player)
+	if _flip_open:
+		out.append(hint("action", "Flip!"))
+	out.append(hint("action_hold", "Turn the stove off" if burner_on else "Light the stove"))
+	return out
+
+
+func get_inspect_text() -> String:
+	var header := "STOVE: %s" % ("ON" if burner_on else "OFF")
+	var rest := super.get_inspect_text()
+	return header if rest == "" else header + "\n" + rest
 
 
 func _update_gauge() -> void:

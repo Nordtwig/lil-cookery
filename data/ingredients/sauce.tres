@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Ingredient" format=3]
+
+[ext_resource type="PackedScene" path="res://items/sauce.tscn" id="1_scene"]
+[ext_resource type="Script" path="res://game/ingredient.gd" id="2_script"]
+
+[resource]
+script = ExtResource("2_script")
+color = Color(0.52, 0.32, 0.16, 1)
+steps = Array[int]([])
+scene = ExtResource("1_scene")
+made_from = Array[String](["stock", "onion"])
+yields = 4
+cook_time = 8.0

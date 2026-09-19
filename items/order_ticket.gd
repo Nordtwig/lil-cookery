@@ -31,3 +31,7 @@ func _header() -> String:
 
 func get_inspect_text() -> String:
 	return "ORDER TICKET\n%s" % _header()
+
+
+func hint_name() -> String:
+	return "Ticket"

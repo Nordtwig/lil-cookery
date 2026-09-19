@@ -9,6 +9,15 @@ extends Station
 const TRAY_SCENE := preload("res://items/tray.tscn")
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	var carried := player.held_item
+	if carried == null:
+		return [hint("interact", "Take a tray")]
+	if carried is Tray and (carried as Tray).is_unmodified():
+		return [hint("interact", "Put the tray back")]
+	return []
+
+
 func interact(player: Player) -> void:
 	var carried := player.held_item
 	if carried == null:

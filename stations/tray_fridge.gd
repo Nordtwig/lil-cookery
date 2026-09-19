@@ -62,6 +62,19 @@ func interact(player: Player) -> void:
 	super.interact(player)
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if player.held_item is Tray and held_item != null:
+		for i in range(2, -1, -1):
+			if _slots[i] == null:
+				out.append(hint("interact", "Put %s on a shelf" % player.held_item.hint_name()))
+				break
+	if out.is_empty():
+		out = super.hints(player)
+	out.append(hint("action", "Next shelf"))
+	return out
+
+
 func action(_player: Player) -> void:
 	var rotated: Array[Item] = [_slots[2], _slots[0], _slots[1]]
 	_slots = rotated

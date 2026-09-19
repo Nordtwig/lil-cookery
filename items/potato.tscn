@@ -1,0 +1,59 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://items/item.gd" id="1_script"]
+
+[sub_resource type="SphereMesh" id="whole_mesh"]
+radius = 0.11
+height = 0.17
+
+[sub_resource type="BoxMesh" id="chunk_mesh"]
+size = Vector3(0.06, 0.05, 0.06)
+
+[sub_resource type="BoxMesh" id="mark_mesh"]
+size = Vector3(0.04, 0.04, 0.04)
+
+[node name="Potato" type="Node3D"]
+script = ExtResource("1_script")
+item_type = "potato"
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.35, 0, 0, 0, 0.8, 0, 0, 0, 1, 0, 0.075, 0)
+mesh = SubResource("whole_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="Chunk1" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.94, 0, -0.34, 0, 1, 0, 0.34, 0, 0.94, -0.07, 0.025, -0.04)
+mesh = SubResource("chunk_mesh")
+
+[node name="Chunk2" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.866, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866, 0.06, 0.025, -0.05)
+mesh = SubResource("chunk_mesh")
+
+[node name="Chunk3" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0.04)
+mesh = SubResource("chunk_mesh")
+
+[node name="Chunk4" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.707, 0, 0.707, 0, 1, 0, -0.707, 0, 0.707, -0.05, 0.025, 0.06)
+mesh = SubResource("chunk_mesh")
+
+[node name="Chunk5" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.966, 0, 0.259, 0, 1, 0, -0.259, 0, 0.966, 0.07, 0.025, 0.05)
+mesh = SubResource("chunk_mesh")
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
+
+[node name="Mark1" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.19, -0.03)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark2" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.04, 0.19, 0.02)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark3" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, 0.2, 0.05)
+mesh = SubResource("mark_mesh")

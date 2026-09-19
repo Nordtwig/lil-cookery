@@ -19,3 +19,7 @@ extends Item
 
 func get_inspect_text() -> String:
 	return "%s SHAKER\n(+%d%% quality)" % [spice_type.to_upper(), int(round(bonus * 100))]
+
+
+func hint_name() -> String:
+	return "Shaker"

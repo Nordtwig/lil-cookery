@@ -1,0 +1,74 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://items/item.gd" id="1_script"]
+
+[sub_resource type="SphereMesh" id="whole_mesh"]
+radius = 0.1
+height = 0.19
+
+[sub_resource type="CylinderMesh" id="stalk_mesh"]
+top_radius = 0.012
+bottom_radius = 0.03
+height = 0.07
+
+[sub_resource type="BoxMesh" id="sliver_mesh"]
+size = Vector3(0.025, 0.015, 0.11)
+
+[sub_resource type="BoxMesh" id="mark_mesh"]
+size = Vector3(0.04, 0.04, 0.04)
+
+[node name="Onion" type="Node3D"]
+script = ExtResource("1_script")
+item_type = "onion"
+
+[node name="Mesh" type="Node3D" parent="."]
+
+[node name="Bulb" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.095, 0)
+mesh = SubResource("whole_mesh")
+
+[node name="Stalk" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21, 0)
+mesh = SubResource("stalk_mesh")
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="Sliver1" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.94, 0, -0.34, 0, 1, 0, 0.34, 0, 0.94, -0.06, 0.01, -0.03)
+mesh = SubResource("sliver_mesh")
+
+[node name="Sliver2" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.5, 0, 0.866, 0, 1, 0, -0.866, 0, 0.5, 0.05, 0.01, -0.04)
+mesh = SubResource("sliver_mesh")
+
+[node name="Sliver3" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.707, 0, -0.707, 0, 1, 0, 0.707, 0, 0.707, -0.02, 0.01, 0.03)
+mesh = SubResource("sliver_mesh")
+
+[node name="Sliver4" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.966, 0, 0.259, 0, 1, 0, -0.259, 0, 0.966, 0.06, 0.01, 0.04)
+mesh = SubResource("sliver_mesh")
+
+[node name="Sliver5" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.259, 0, 0.966, 0, 1, 0, -0.966, 0, 0.259, 0, 0.03, 0)
+mesh = SubResource("sliver_mesh")
+
+[node name="Sliver6" type="MeshInstance3D" parent="Pieces"]
+transform = Transform3D(0.819, 0, -0.574, 0, 1, 0, 0.574, 0, 0.819, -0.04, 0.03, 0.05)
+mesh = SubResource("sliver_mesh")
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false
+
+[node name="Mark1" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.21, -0.03)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark2" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.04, 0.21, 0.02)
+mesh = SubResource("mark_mesh")
+
+[node name="Mark3" type="MeshInstance3D" parent="SeasonMarks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, 0.22, 0.05)
+mesh = SubResource("mark_mesh")

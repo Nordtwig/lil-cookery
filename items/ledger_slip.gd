@@ -33,3 +33,7 @@ func _ready() -> void:
 
 func get_inspect_text() -> String:
 	return "%s\n(carry to the bookkeeping desk to file it)" % display_name
+
+
+func hint_name() -> String:
+	return display_name if display_name != "" else "Slip"

@@ -82,8 +82,15 @@ func _is_chopping() -> bool:
 ## carries forward so more cutting keeps having an effect). A finished dispenser
 ## (a chopped head) is excluded — it's done and meant to be sliced into scraps,
 ## not re-chopped; that frees the board to peel from it.
+func hints(player: Player) -> Array[Dictionary]:
+	var out := super.hints(player)
+	if held_item != null and _can_chop(held_item):
+		out.append(hint("action_hold", "Chop %s" % held_item.hint_name()))
+	return out
+
+
 func _can_chop(item: Item) -> bool:
-	if item.can_dispense():
+	if item.is_dispenser() and item.is_fully_prepped():
 		return false
 	return item.has_step(Ingredients.Verb.CHOP) and (
 		item.next_verb() == Ingredients.Verb.CHOP

@@ -66,6 +66,14 @@ func print_tickets(dishes: Array[String], table_number: int) -> void:
 ## ticket. Outside SERVICE (i.e. NIGHT), this is the same station it's
 ## always been — falls through to LedgerAccumulator's bookkeeping-slip pickup
 ## unchanged.
+func hints(player: Player) -> Array[Dictionary]:
+	if GameState.phase == GameState.Phase.SERVICE:
+		if player.held_item == null and not _pending_tickets.is_empty():
+			return [hint("interact", "Take a receipt (%d waiting)" % _pending_tickets.size())]
+		return []
+	return super.hints(player)
+
+
 func interact(player: Player) -> void:
 	if GameState.phase == GameState.Phase.SERVICE:
 		if player.held_item == null and not _pending_tickets.is_empty():

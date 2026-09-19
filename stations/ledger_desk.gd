@@ -18,6 +18,12 @@ const _CATEGORIES := ["cash", "receipts", "invoices"]
 var _slips: Dictionary = {}  # category -> LedgerSlip
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	if player.held_item is LedgerSlip and not _slips.has((player.held_item as LedgerSlip).category):
+		return [hint("interact", "Put down the %s" % player.held_item.hint_name().to_lower())]
+	return []
+
+
 func interact(player: Player) -> void:
 	if not (player.held_item is LedgerSlip):
 		return

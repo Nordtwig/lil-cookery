@@ -323,6 +323,22 @@ func _reveal_order() -> void:
 ## while still hidden. A no-op before the order's ever been revealed, or
 ## once nothing's left pending (matches get_inspect_text()'s own
 ## "enjoying their meal" read for that state — nothing to remind anyone of).
+func hints(player: Player) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	match _state:
+		State.WAITING:
+			if player.held_item is Plate and not _pending_dishes.is_empty():
+				out.append(hint("interact", "Serve"))
+			elif player.held_item == null and not _order_revealed:
+				out.append(hint("interact", "Take the order"))
+			if _order_revealed and not _pending_dishes.is_empty():
+				out.append(hint("action", "Show the order"))
+		State.PAID:
+			if player.held_item == null:
+				out.append(hint("interact", "Collect $%d" % _pending_value))
+	return out
+
+
 func action(_player: Player) -> void:
 	if _state == State.WAITING and _order_revealed:
 		_flash_want_label()

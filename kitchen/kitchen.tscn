@@ -22,6 +22,9 @@
 [ext_resource type="PackedScene" path="res://stations/shelf.tscn" id="24_shelf"]
 [ext_resource type="PackedScene" path="res://stations/bay_stack.tscn" id="25_bay_stack"]
 [ext_resource type="PackedScene" path="res://items/spice.tscn" id="26_spice"]
+[ext_resource type="PackedScene" path="res://stations/sink.tscn" id="27_sink"]
+[ext_resource type="PackedScene" path="res://items/pot.tscn" id="28_pot"]
+[ext_resource type="PackedScene" path="res://ui/hint_label.tscn" id="29_hint"]
 
 [sub_resource type="Environment" id="environment"]
 background_mode = 1
@@ -255,6 +258,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -3)
 [node name="StoveB" parent="Counters" unique_id=15008263 instance=ExtResource("4_cook")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -2)
 
+[node name="Sink" parent="Counters" unique_id=900000031 instance=ExtResource("27_sink")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -1)
+
 [node name="TrayFridge2" parent="Counters" unique_id=791012841 instance=ExtResource("13_tray_fridge")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 1, 0.45, -4)
 
@@ -267,6 +273,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.45, -4)
 
 [node name="CounterN2" parent="Counters" unique_id=1048557779 instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, -4)
+start_item_scene = ExtResource("28_pot")
 
 [node name="BoardE" parent="Counters" unique_id=603794720 instance=ExtResource("8_board")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -4)
@@ -313,6 +320,7 @@ starting_crate_type = "meat"
 
 [node name="ShelfS1" parent="Counters" unique_id=900000021 instance=ExtResource("24_shelf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.45, 0)
+starting_crate_type = "chicken"
 
 [node name="ShelfS2" parent="Counters" unique_id=900000022 instance=ExtResource("24_shelf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.45, 0)
@@ -320,9 +328,11 @@ starting_crate_type = "lettuce_head"
 
 [node name="ShelfS3" parent="Counters" unique_id=900000023 instance=ExtResource("24_shelf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.45, 0)
+starting_crate_type = "potato"
 
 [node name="ShelfS4" parent="Counters" unique_id=900000024 instance=ExtResource("24_shelf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.45, 0)
+starting_crate_type = "onion"
 
 [node name="BayStack1" parent="Counters" unique_id=900000026 instance=ExtResource("25_bay_stack")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.45, -3)
@@ -395,6 +405,11 @@ offset_top = -156.0
 offset_right = -24.0
 offset_bottom = 0.0
 grow_horizontal = 0
+player_id = 2
+
+[node name="HintLabelP1" parent="." unique_id=900000041 instance=ExtResource("29_hint")]
+
+[node name="HintLabelP2" parent="." unique_id=900000042 instance=ExtResource("29_hint")]
 player_id = 2
 
 [node name="Player1" parent="." unique_id=743813322 instance=ExtResource("1_player")]

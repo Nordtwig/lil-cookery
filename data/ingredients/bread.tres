@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Ingredient" format=3]
+
+[ext_resource type="PackedScene" path="res://items/bread.tscn" id="1_ebadf"]
+[ext_resource type="Script" path="res://game/ingredient.gd" id="2_whttu"]
+
+[resource]
+script = ExtResource("2_whttu")
+color = Color(0.82, 0.62, 0.36, 1)
+scene = ExtResource("1_ebadf")
+toasts_into = "toasted_bread"

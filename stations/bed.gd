@@ -5,6 +5,12 @@ extends Station
 ## NIGHT (can't turn in mid-service or mid-morning).
 
 
+func hints(_player: Player) -> Array[Dictionary]:
+	if GameState.phase == GameState.Phase.NIGHT:
+		return [hint("interact", "Go to bed")]
+	return []
+
+
 func interact(_player: Player) -> void:
 	GameState.end_night()
 

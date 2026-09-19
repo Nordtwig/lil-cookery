@@ -7,6 +7,12 @@ extends Station
 ## kitchen or stuck in a player's hands with no way to let go of it.
 
 
+func hints(player: Player) -> Array[Dictionary]:
+	if player.held_item == null:
+		return []
+	return [hint("interact", "Throw away %s" % player.held_item.hint_name())]
+
+
 func interact(player: Player) -> void:
 	if player.held_item == null:
 		return

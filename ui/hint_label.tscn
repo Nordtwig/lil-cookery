@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/hint_label.gd" id="1_script"]
+
+[node name="HintLabel" type="Node3D"]
+top_level = true
+script = ExtResource("1_script")
+
+[node name="Label" type="Label3D" parent="."]
+visible = false
+billboard = 1
+no_depth_test = true
+fixed_size = true
+pixel_size = 0.0006
+font_size = 20
+outline_size = 2
+outline_modulate = Color(0, 0, 0, 1)
+horizontal_alignment = 1
+vertical_alignment = 2
+text = ""

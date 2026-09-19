@@ -131,7 +131,7 @@ func interact(player: Player) -> void:
 		# it, skipping the hand — repeated taps empty the whole dispenser
 		# into the tray (four taps deposits a chopped head's four scraps).
 		held_item.absorb(carried.dispense(self))
-		if carried.frees_when_empty() and not carried.can_dispense():
+		if carried.spent():
 			player.drop_item()
 			carried.queue_free()
 	elif carried != null and held_item != null and held_item.can_dispense() and carried.can_absorb_type(held_item.dispensed_portion_type()):
@@ -145,7 +145,7 @@ func interact(player: Player) -> void:
 		# tray round trip.
 		var d := held_item
 		carried.absorb(d.dispense(self))
-		if d.frees_when_empty() and not d.can_dispense():
+		if d.spent():
 			held_item = null
 			d.queue_free()
 	elif carried is Plate and (carried as Plate).can_add(held_item):
@@ -203,6 +203,46 @@ func interact(player: Player) -> void:
 			held_item = null
 
 
+## The same ladder as interact(), naming each rung instead of doing it. Keep the
+## two in the same order - a hint that names a verb a tap wouldn't do is worse
+## than no hint.
+func hints(player: Player) -> Array[Dictionary]:
+	var carried := player.held_item
+	var out: Array[Dictionary] = []
+	if held_item != null and carried == null and held_item.can_dispense():
+		out.append(hint("interact", "Take one %s" % held_item.dispensed_portion_type().capitalize()))
+		out.append(hint("interact_hold", "Take %s" % held_item.hint_name()))
+	elif held_item != null and carried != null and held_item.can_absorb(carried):
+		out.append(hint("interact", "Put %s in %s" % [carried.hint_name(), held_item.hint_name()]))
+		out.append(hint("interact_hold", "Take all"))
+	elif carried == null and held_item is Plate and (held_item as Plate).is_tagged():
+		out.append(hint("interact", "Pick up Plate"))
+		out.append(hint("interact_hold", "Take the ticket off"))
+	elif carried == null and held_item != null:
+		out.append(hint("interact", "Pick up %s" % held_item.hint_name()))
+	elif carried != null and held_item == null:
+		out.append(hint("interact", "Put down %s" % carried.hint_name()))
+	elif carried != null and held_item != null and carried.can_absorb(held_item):
+		out.append(hint("interact", "Scoop %s" % held_item.hint_name()))
+	elif carried != null and held_item != null and carried.can_dispense() and held_item.can_absorb_type(carried.dispensed_portion_type()):
+		out.append(hint("interact", "Add %s to %s" % [carried.dispensed_portion_type().capitalize(), held_item.hint_name()]))
+	elif carried != null and held_item != null and held_item.can_dispense() and carried.can_absorb_type(held_item.dispensed_portion_type()):
+		out.append(hint("interact", "Take one %s into %s" % [held_item.dispensed_portion_type().capitalize(), carried.hint_name()]))
+	elif carried is Plate and (carried as Plate).can_add(held_item):
+		out.append(hint("interact", "Plate %s" % held_item.hint_name()))
+	elif held_item is Plate and (held_item as Plate).can_add(carried):
+		out.append(hint("interact", "Plate %s" % carried.hint_name()))
+	elif carried is Spice and held_item != null and held_item.can_be_seasoned():
+		out.append(hint("interact", "Season %s" % held_item.hint_name()))
+	elif carried is Spice and held_item is Plate:
+		out.append(hint("interact", "Season the plate"))
+	elif carried is OrderTicket and held_item is Plate:
+		out.append(hint("interact", "Tag the plate"))
+	elif held_item is OrderTicket and carried is Plate:
+		out.append(hint("interact", "Tag the plate"))
+	return out
+
+
 func interact_hold(player: Player, delta: float) -> void:
 	if held_item is Item and _pending_dispense_player == player:
 		_dispense_press_elapsed += delta
@@ -252,7 +292,7 @@ func _peel_one(player: Player) -> void:
 	if d == null or not d.can_dispense():
 		return
 	player.take_item(d.dispense(self))
-	if d.frees_when_empty() and not d.can_dispense():
+	if d.spent():
 		held_item = null
 		d.queue_free()
 
@@ -263,7 +303,9 @@ func _take_whole_dispenser(player: Player) -> void:
 	if d == null:
 		return
 	held_item = null
-	player.take_item(d)
+	# Through the removal hook, like every other way an item leaves a slot - a
+	# bird lifted whole off a stove mid-roast still gets its cook score locked.
+	player.take_item(_on_item_removed(d))
 
 
 ## A quick tap while carrying something the batch can absorb: put it in.
