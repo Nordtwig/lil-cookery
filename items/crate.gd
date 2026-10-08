@@ -27,7 +27,18 @@ extends Item
 var stock := 0
 var _restocking := false
 
-@onready var _content_mesh: MeshInstance3D = $ContentMesh
+## Crate isn't Station-derived, so it can't share Station.find_mesh_instance() -
+## same fix, same reason (a swapped-in generated glb wraps its mesh in a Node3D).
+static func _find_mesh_instance(root: Node) -> MeshInstance3D:
+	if root is MeshInstance3D:
+		return root
+	for child in root.get_children():
+		var found := _find_mesh_instance(child)
+		if found != null:
+			return found
+	return null
+
+@onready var _content_mesh: MeshInstance3D = _find_mesh_instance($ContentMesh)
 
 
 func _ready() -> void:

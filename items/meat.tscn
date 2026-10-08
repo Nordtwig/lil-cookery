@@ -1,11 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://items/item.gd" id="1_script"]
-
-[sub_resource type="CylinderMesh" id="whole_mesh"]
-top_radius = 0.135
-bottom_radius = 0.135
-height = 0.06
+[ext_resource type="PackedScene" path="res://items/models/meat_whole.glb" id="2_whole"]
 
 [sub_resource type="BoxMesh" id="mark_mesh"]
 size = Vector3(0.05, 0.05, 0.05)
@@ -14,9 +10,7 @@ size = Vector3(0.05, 0.05, 0.05)
 script = ExtResource("1_script")
 item_type = "meat"
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
-mesh = SubResource("whole_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
 
 [node name="Pieces" type="Node3D" parent="."]
 visible = false

@@ -1,9 +1,10 @@
 class_name Pot
 extends Item
 
-## A vessel for combined ingredients - the only place `Ingredients.made_from` happens.
-## Fill it with prepped inputs (any order; it only takes things that could still
-## complete some recipe), set it on a stove and light the burner. It cooks like any
+## A vessel for combined ingredients - it runs the POT recipes (`Ingredients.recipes_for`).
+## Fill it with inputs (any order; it only takes things that could still complete some
+## recipe - prepped, unless the recipe's entry says "any"), set it on a stove and light
+## the burner. It cooks like any
 ## other item: same gauge, same bands, same pull-to-score. Pull it once it's at least
 ## Good and the inputs become `yields` portions of the output, which the pot then
 ## peels out via the ordinary dispenser grammar - a pot of stock is a loaf of bread.
@@ -23,6 +24,9 @@ const _RING := [Vector3(-0.08, 0.08, -0.08), Vector3(0.08, 0.08, -0.08), Vector3
 const _RAW_LIQUID := Color(0.80, 0.78, 0.70)
 
 var contents: Array[Item] = []
+## Water isn't an item - it's poured in from the sink and counts as the input
+## "water" in every recipe check. No cup, nothing to carry or set down.
+var has_water := false
 var output_type := ""
 var portions_left := 0
 var _output_quality := -1.0
@@ -39,6 +43,10 @@ func _ready() -> void:
 
 
 # --- what the stove sees ---
+
+func is_vessel() -> bool:
+	return true
+
 
 ## Cookable exactly while it holds a complete set of inputs and no output yet.
 func has_step(verb: int) -> bool:
@@ -76,8 +84,9 @@ func lock_in_cook_score(score: float) -> void:
 	for c in contents:
 		total += c.quality_value()
 		c.queue_free()
-	var mean_in := total / contents.size()
+	var mean_in := total / contents.size() if not contents.is_empty() else score
 	contents.clear()
+	has_water = false
 	output_type = out
 	portions_left = Ingredients.yields_for(out)
 	_output_quality = clampf((score + mean_in) / 2.0, 0.0, 1.0)
@@ -91,19 +100,22 @@ func quality_value() -> float:
 
 # --- filling ---
 
-## The combined type whose inputs exactly match what's in here, or "".
+## The POT recipe whose inputs exactly match what's in here, or "".
 func recipe() -> String:
 	var have := _counts(_content_types())
-	for type in Ingredients.combined_types():
-		if _counts(Ingredients.made_from_for(type)) == have:
+	for type in Ingredients.recipes_for(Ingredients.Method.POT):
+		if _counts(_input_types(type)) == have and _prep_satisfied(type):
 			return type
 	return ""
 
 
-## Only prepped inputs, only while raw, only if some recipe could still be completed
-## with this added - the exact-match rule stated positively.
+## Only while raw, only if some recipe could still be completed with this added - the
+## exact-match rule stated positively. An unprepped input needs a recipe that takes
+## that type in any state (a whole potato boils; a whole onion doesn't make sauce).
 func can_absorb(item: Item) -> bool:
-	return item != null and item.is_fully_prepped() and can_absorb_type(item.item_type)
+	if item == null or not can_absorb_type(item.item_type):
+		return false
+	return item.is_fully_prepped() or _some_recipe_takes_any(item.item_type)
 
 
 func can_absorb_type(type: String) -> bool:
@@ -112,8 +124,8 @@ func can_absorb_type(type: String) -> bool:
 	var would := _content_types()
 	would.append(type)
 	var have := _counts(would)
-	for candidate in Ingredients.combined_types():
-		var need := _counts(Ingredients.made_from_for(candidate))
+	for candidate in Ingredients.recipes_for(Ingredients.Method.POT):
+		var need := _counts(_input_types(candidate))
 		var fits := true
 		for t in have:
 			if have[t] > need.get(t, 0):
@@ -124,10 +136,48 @@ func can_absorb_type(type: String) -> bool:
 	return false
 
 
+## Every unprepped content is covered by an "any" entry of this recipe.
+func _prep_satisfied(recipe_type: String) -> bool:
+	for c in contents:
+		if not c.is_fully_prepped() and not _recipe_takes_any(recipe_type, c.item_type):
+			return false
+	return true
+
+
+func _some_recipe_takes_any(type: String) -> bool:
+	for candidate in Ingredients.recipes_for(Ingredients.Method.POT):
+		if _recipe_takes_any(candidate, type):
+			return true
+	return false
+
+
+static func _recipe_takes_any(recipe_type: String, type: String) -> bool:
+	for entry in Ingredients.made_from_for(recipe_type):
+		if Ingredients.input_any(entry) and Ingredients.input_type(entry) == type:
+			return true
+	return false
+
+
+## A recipe's input types with the "any " prefix stripped.
+static func _input_types(recipe_type: String) -> Array:
+	return Ingredients.made_from_for(recipe_type).map(Ingredients.input_type)
+
+
 func absorb(item: Item) -> void:
 	item.attach_to(self)
 	contents.append(item)
 	_arrange()
+	_refresh_liquid()
+
+
+## From the sink's tap. Only while a recipe could still want water.
+func can_fill_water() -> bool:
+	return can_absorb_type("water")
+
+
+func fill_water() -> void:
+	has_water = true
+	_refresh_liquid()
 
 
 # --- dispensing the output ---
@@ -162,7 +212,7 @@ func frees_when_empty() -> bool:
 
 
 func is_unmodified() -> bool:
-	return contents.is_empty() and output_type == ""
+	return contents.is_empty() and not has_water and output_type == ""
 
 
 # --- visuals ---
@@ -182,14 +232,20 @@ func _refresh_liquid() -> void:
 		var fill := float(portions_left) / maxf(1.0, Ingredients.yields_for(output_type))
 		_liquid.scale = Vector3(1.0, maxf(fill, 0.05), 1.0)
 		return
+	# Water shows as soon as it's poured in, so a filled pot reads as filled before
+	# anything's cooking; the cook shade then starts from that blue.
 	var cooking := has_step(Ingredients.Verb.COOK) and doneness > 0.0
-	_liquid.visible = cooking
+	_liquid.visible = cooking or has_water
 	if not cooking:
+		if has_water:
+			_liquid_mat.albedo_color = Ingredients.color_for("water")
+			_liquid.scale = Vector3.ONE
 		return
+	var start := Ingredients.color_for("water") if has_water else _RAW_LIQUID
 	var target := Ingredients.color_for(recipe())
 	var shade: Color
 	if doneness <= 1.0:
-		shade = _RAW_LIQUID.lerp(target, clampf(doneness, 0.0, 1.0))
+		shade = start.lerp(target, clampf(doneness, 0.0, 1.0))
 	else:
 		var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
 		shade = target.lerp(Color(0.08, 0.07, 0.06), char_t)
@@ -209,6 +265,8 @@ func _content_types() -> Array[String]:
 	var out: Array[String] = []
 	for c in contents:
 		out.append(c.item_type)
+	if has_water:
+		out.append("water")
 	return out
 
 

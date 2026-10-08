@@ -1,11 +1,7 @@
 [gd_scene format=3 uid="uid://cp3pnay30v5y3"]
 
 [ext_resource type="Script" uid="uid://s6wd0e6hevov" path="res://items/plate.gd" id="1_script"]
-
-[sub_resource type="CylinderMesh" id="plate_mesh"]
-top_radius = 0.28
-bottom_radius = 0.22
-height = 0.05
+[ext_resource type="PackedScene" path="res://items/models/plate_whole.glb" id="2_whole"]
 
 [sub_resource type="StandardMaterial3D" id="checklist_bg_mat"]
 no_depth_test = true
@@ -22,9 +18,7 @@ center_offset = Vector3(0, -0.03, 0)
 script = ExtResource("1_script")
 color = Color(0.92, 0.92, 0.94, 1)
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1352701976]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-mesh = SubResource("plate_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
 
 [node name="Pieces" type="Node3D" parent="." unique_id=257752717]
 visible = false

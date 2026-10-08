@@ -1,23 +1,11 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://stations/sink.gd" id="1_script"]
-
-[sub_resource type="StandardMaterial3D" id="body_mat"]
-albedo_color = Color(0.72, 0.74, 0.78, 1)
-
-[sub_resource type="BoxMesh" id="body_mesh"]
-material = SubResource("body_mat")
-size = Vector3(1, 0.9, 1)
+[ext_resource type="PackedScene" path="res://stations/models/sink_whole.glb" id="2_body"]
+[ext_resource type="PackedScene" path="res://stations/models/basin_whole.glb" id="3_basin_mesh"]
 
 [sub_resource type="BoxShape3D" id="body_shape"]
 size = Vector3(1, 0.9, 1)
-
-[sub_resource type="StandardMaterial3D" id="basin_mat"]
-albedo_color = Color(0.55, 0.68, 0.78, 1)
-
-[sub_resource type="BoxMesh" id="basin_mesh"]
-material = SubResource("basin_mat")
-size = Vector3(0.7, 0.06, 0.5)
 
 [sub_resource type="StandardMaterial3D" id="highlight_mat"]
 transparency = 1
@@ -33,15 +21,16 @@ collision_layer = 5
 collision_mask = 0
 script = ExtResource("1_script")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-mesh = SubResource("body_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_body")]
 
 [node name="Shape" type="CollisionShape3D" parent="."]
 shape = SubResource("body_shape")
 
-[node name="Basin" type="MeshInstance3D" parent="."]
+[node name="Basin" parent="." instance=ExtResource("3_basin_mesh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.44, 0)
-mesh = SubResource("basin_mesh")
+
+[node name="Slot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 
 [node name="Highlight" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)

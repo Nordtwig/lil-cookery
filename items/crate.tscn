@@ -1,27 +1,16 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://items/crate.gd" id="1_script"]
-
-[sub_resource type="StandardMaterial3D" id="body_mat"]
-albedo_color = Color(0.5, 0.36, 0.22, 1)
-
-[sub_resource type="BoxMesh" id="body_mesh"]
-material = SubResource("body_mat")
-size = Vector3(0.5, 0.35, 0.5)
-
-[sub_resource type="BoxMesh" id="content_mesh"]
-size = Vector3(0.36, 0.12, 0.36)
+[ext_resource type="PackedScene" path="res://items/models/crate_whole.glb" id="2_whole"]
+[ext_resource type="PackedScene" path="res://items/models/crate_content_whole.glb" id="3_content_mesh"]
 
 [node name="Crate" type="Node3D"]
 script = ExtResource("1_script")
 
-[node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, 0)
-mesh = SubResource("body_mesh")
+[node name="Body" parent="." instance=ExtResource("2_whole")]
 
-[node name="ContentMesh" type="MeshInstance3D" parent="."]
+[node name="ContentMesh" parent="." instance=ExtResource("3_content_mesh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.34, 0)
-mesh = SubResource("content_mesh")
 
 [node name="Mesh" type="Node3D" parent="."]
 

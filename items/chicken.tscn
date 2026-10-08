@@ -1,14 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://items/item.gd" id="1_script"]
-
-[sub_resource type="SphereMesh" id="body_mesh"]
-radius = 0.17
-height = 0.26
-
-[sub_resource type="CapsuleMesh" id="leg_mesh"]
-radius = 0.035
-height = 0.14
+[ext_resource type="PackedScene" path="res://items/models/chicken_whole.glb" id="2_whole"]
 
 [sub_resource type="BoxMesh" id="mark_mesh"]
 size = Vector3(0.04, 0.04, 0.04)
@@ -17,19 +10,7 @@ size = Vector3(0.04, 0.04, 0.04)
 script = ExtResource("1_script")
 item_type = "chicken"
 
-[node name="Mesh" type="Node3D" parent="."]
-
-[node name="Body" type="MeshInstance3D" parent="Mesh"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
-mesh = SubResource("body_mesh")
-
-[node name="LegL" type="MeshInstance3D" parent="Mesh"]
-transform = Transform3D(0.94, 0.34, 0, -0.34, 0.94, 0, 0, 0, 1, -0.11, 0.09, 0.12)
-mesh = SubResource("leg_mesh")
-
-[node name="LegR" type="MeshInstance3D" parent="Mesh"]
-transform = Transform3D(0.94, -0.34, 0, 0.34, 0.94, 0, 0, 0, 1, 0.11, 0.09, 0.12)
-mesh = SubResource("leg_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
 
 [node name="Pieces" type="Node3D" parent="."]
 visible = false

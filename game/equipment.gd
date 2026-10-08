@@ -23,6 +23,11 @@ const DEFS := {
 		"cost": 12,
 		"scene": "res://items/pot.tscn",
 	},
+	"pan": {
+		"display_name": "Pan",
+		"cost": 8,
+		"scene": "res://items/pan.tscn",
+	},
 }
 
 

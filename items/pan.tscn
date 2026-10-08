@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/pan.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://items/models/pan_whole.glb" id="2_whole"]
+
+[node name="Pan" type="Node3D"]
+script = ExtResource("1_script")
+color = Color(0.22, 0.22, 0.24, 1)
+
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
+
+[node name="Seat" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+
+[node name="Pieces" type="Node3D" parent="."]
+visible = false
+
+[node name="SeasonMarks" type="Node3D" parent="."]
+visible = false

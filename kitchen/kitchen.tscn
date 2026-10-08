@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" path="res://items/spice.tscn" id="26_spice"]
 [ext_resource type="PackedScene" path="res://stations/sink.tscn" id="27_sink"]
 [ext_resource type="PackedScene" path="res://items/pot.tscn" id="28_pot"]
+[ext_resource type="PackedScene" path="res://items/pan.tscn" id="29_pan"]
 [ext_resource type="PackedScene" path="res://ui/hint_label.tscn" id="29_hint"]
 
 [sub_resource type="Environment" id="environment"]
@@ -251,12 +252,14 @@ shape = SubResource("storagewall_east_shape")
 
 [node name="StoveA" parent="Counters" unique_id=2045298500 instance=ExtResource("4_cook")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -4)
+start_item_scene = ExtResource("29_pan")
 
 [node name="TrayFridge1" parent="Counters" unique_id=774965056 instance=ExtResource("13_tray_fridge")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -3)
 
 [node name="StoveB" parent="Counters" unique_id=15008263 instance=ExtResource("4_cook")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -2)
+start_item_scene = ExtResource("28_pot")
 
 [node name="Sink" parent="Counters" unique_id=900000031 instance=ExtResource("27_sink")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.45, -1)
@@ -273,7 +276,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.45, -4)
 
 [node name="CounterN2" parent="Counters" unique_id=1048557779 instance=ExtResource("2_counter")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.45, -4)
-start_item_scene = ExtResource("28_pot")
 
 [node name="BoardE" parent="Counters" unique_id=603794720 instance=ExtResource("8_board")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -4)

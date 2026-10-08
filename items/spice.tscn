@@ -1,19 +1,13 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://items/spice.gd" id="1_script"]
-
-[sub_resource type="CylinderMesh" id="shaker_mesh"]
-top_radius = 0.09
-bottom_radius = 0.12
-height = 0.26
+[ext_resource type="PackedScene" path="res://items/models/spice_shaker_whole.glb" id="2_whole"]
 
 [node name="Spice" type="Node3D"]
 script = ExtResource("1_script")
 color = Color(0.32, 0.27, 0.22, 1)
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
-mesh = SubResource("shaker_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
 
 [node name="Pieces" type="Node3D" parent="."]
 visible = false

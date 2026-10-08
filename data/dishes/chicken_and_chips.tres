@@ -4,5 +4,5 @@
 
 [resource]
 script = ExtResource("1_script")
-components = Array[String](["chicken_piece", "potato"])
+components = Array[String](["chicken_piece", "fried_potato"])
 layout = "fan"

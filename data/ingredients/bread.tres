@@ -7,4 +7,3 @@
 script = ExtResource("2_whttu")
 color = Color(0.82, 0.62, 0.36, 1)
 scene = ExtResource("1_ebadf")
-toasts_into = "toasted_bread"

@@ -41,7 +41,7 @@ extends Station
 ## a cap on the real figure.
 @export var pile_cap := 30
 
-@onready var _pile: MeshInstance3D = $Pile
+@onready var _pile: MeshInstance3D = find_mesh_instance($Pile)
 var _pile_bottom_y := 0.0
 var _pile_full_height := 0.0
 

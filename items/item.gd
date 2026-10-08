@@ -85,6 +85,29 @@ func _ready() -> void:
 	_update_tint()
 
 
+## A vessel is what a stove holds - a Pot, a Pan. Nothing else goes on a burner.
+func is_vessel() -> bool:
+	return false
+
+
+## What a stove actually cooks when this sits on it: the item itself, or for a pan
+## its content (null when empty). A pot is its own subject - it cooks as one thing.
+func cook_subject() -> Item:
+	return self
+
+
+## Whether heat would do anything to this right now: a COOK step (pending or done -
+## more heat keeps having an effect), or a STOVE recipe whose prep rule it meets. A
+## finished dispenser (a baked loaf) is inert - its job is to be sliced.
+func heatable() -> bool:
+	if is_dispenser() and is_fully_prepped():
+		return false
+	if has_step(Ingredients.Verb.COOK):
+		return true
+	var out := Ingredients.stove_output_for(item_type)
+	return out != "" and (is_fully_prepped() or Ingredients.input_any(Ingredients.made_from_for(out)[0]))
+
+
 ## What a hint calls this - "Potato", "Chicken Piece". Things without an
 ## item_type (a plate, a tray) say what they are.
 func hint_name() -> String:
@@ -231,8 +254,8 @@ func is_unmodified() -> bool:
 	return _prep_scores.is_empty() and chop_progress == 0.0 and doneness == 0.0 and not seasoned
 
 
-## Changes this item's ingredient type in place (e.g. a re-cooked bread slice
-## becoming toasted bread — see Ingredients.toasts_into) — updates its base
+## Changes this item's ingredient type in place (a STOVE transform's output, a
+## dispenser's remainder — see Ingredients.stove_output_for) — updates its base
 ## color and re-tints immediately using the current doneness, so a
 ## well-toasted vs. burnt slice still reads differently. Doesn't touch
 ## prep-chain state; only meant for an item that's already fully prepped
@@ -487,9 +510,9 @@ func _update_tint() -> void:
 	# Cookable items show the cook tint (pale raw → rich at done → charcoal
 	# burnt) once any prior CHOP step is out of the way — or immediately, for
 	# an ingredient like meat that skips chopping and goes straight to the
-	# stove. A finished portion that's toastable (a bread slice) instead darkens
-	# from its own base toward the toasted color as it cooks — a fresh cook on
-	# its own clock, base-colored at rest. Everything else shows its base color.
+	# stove. A STOVE-transform input (a bread slice) instead shades from its own
+	# base toward the output's color as it cooks - a fresh cook on its own
+	# clock, base-colored at rest. Everything else shows its base color.
 	var chop_clear := not has_step(Ingredients.Verb.CHOP) or step_done(Ingredients.Verb.CHOP)
 	if has_step(Ingredients.Verb.COOK) and chop_clear:
 		var pale := color.lerp(Color(0.90, 0.85, 0.80), 0.55)
@@ -500,14 +523,14 @@ func _update_tint() -> void:
 			var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
 			cooked = color.lerp(Color(0.08, 0.07, 0.06), char_t)
 		_mat.albedo_color = cooked
-	elif Ingredients.toasts_into(item_type) != "" and doneness > 0.0:
-		var toasted := Ingredients.color_for(Ingredients.toasts_into(item_type))
+	elif Ingredients.stove_output_for(item_type) != "" and doneness > 0.0:
+		var target := Ingredients.color_for(Ingredients.stove_output_for(item_type))
 		var shade: Color
 		if doneness <= 1.0:
-			shade = color.lerp(toasted, clampf(doneness, 0.0, 1.0))
+			shade = color.lerp(target, clampf(doneness, 0.0, 1.0))
 		else:
 			var char_t := clampf((doneness - 1.0) / (BURNT_CAP - 1.0), 0.0, 1.0)
-			shade = toasted.lerp(Color(0.08, 0.07, 0.06), char_t)
+			shade = target.lerp(Color(0.08, 0.07, 0.06), char_t)
 		_mat.albedo_color = shade
 	else:
 		_mat.albedo_color = color

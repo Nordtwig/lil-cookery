@@ -1,40 +1,26 @@
 class_name Sink
-extends Station
+extends SlotStation
 
-## An infinite source of water, like PlateStack is of plates. Empty-handed, take a
-## cup; carrying anything that takes water (a pot), fill it straight from the tap;
-## carrying an untouched cup, pour it back.
-
-const _WATER_SCENE := preload("res://items/water.tscn")
+## A counter with a tap. Carrying a pot that still wants water, interact fills it
+## straight from the tap - water is never a standalone item, the pot is the only way
+## to carry it. Anything else is set down on / taken off the sink like a counter.
 
 
 func interact(player: Player) -> void:
 	var carried := player.held_item
-	if carried == null:
-		player.take_item(_spawn())
-	elif carried.item_type == "water" and carried.is_unmodified():
-		player.drop_item()
-		carried.queue_free()
-	elif carried.can_absorb_type("water"):
-		carried.absorb(_spawn())
+	if carried is Pot and (carried as Pot).can_fill_water():
+		(carried as Pot).fill_water()
+		return
+	super.interact(player)
 
 
 func hints(player: Player) -> Array[Dictionary]:
 	var carried := player.held_item
-	if carried == null:
-		return [hint("interact", "Take some water")]
-	if carried.item_type == "water" and carried.is_unmodified():
-		return [hint("interact", "Pour it back")]
-	if carried.can_absorb_type("water"):
+	if carried is Pot and (carried as Pot).can_fill_water():
 		return [hint("interact", "Fill %s" % carried.hint_name())]
-	return []
-
-
-func _spawn() -> Item:
-	var water: Item = _WATER_SCENE.instantiate()
-	water.item_type = "water"
-	return water
+	return super.hints(player)
 
 
 func get_inspect_text() -> String:
-	return "SINK"
+	var rest := super.get_inspect_text()
+	return "SINK" if rest == "" else "SINK\n" + rest

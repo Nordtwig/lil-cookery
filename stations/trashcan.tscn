@@ -1,13 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://stations/trashcan.gd" id="1_script"]
-
-[sub_resource type="StandardMaterial3D" id="body_mat"]
-albedo_color = Color(0.25, 0.32, 0.26, 1)
-
-[sub_resource type="BoxMesh" id="body_mesh"]
-material = SubResource("body_mat")
-size = Vector3(0.8, 0.9, 0.8)
+[ext_resource type="PackedScene" path="res://stations/models/trashcan_whole.glb" id="2_body"]
 
 [sub_resource type="BoxShape3D" id="body_shape"]
 size = Vector3(0.8, 0.9, 0.8)
@@ -26,8 +20,7 @@ collision_layer = 5
 collision_mask = 0
 script = ExtResource("1_script")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-mesh = SubResource("body_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_body")]
 
 [node name="Shape" type="CollisionShape3D" parent="."]
 shape = SubResource("body_shape")

@@ -1,17 +1,15 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://player/models/player_body_whole.glb" id="2_body"]
+[ext_resource type="PackedScene" path="res://player/models/player_skin_whole.glb" id="3_skin"]
+[ext_resource type="PackedScene" path="res://player/models/player_apron_whole.glb" id="4_apron"]
+[ext_resource type="PackedScene" path="res://player/models/player_hat_whole.glb" id="5_hat"]
+[ext_resource type="PackedScene" path="res://player/models/player_legs_whole.glb" id="6_legs"]
 
 [sub_resource type="CapsuleShape3D" id="capsule_shape"]
 radius = 0.35
 height = 1.4
-
-[sub_resource type="CapsuleMesh" id="capsule_mesh"]
-radius = 0.35
-height = 1.4
-
-[sub_resource type="BoxMesh" id="nose_mesh"]
-size = Vector3(0.16, 0.16, 0.28)
 
 [sub_resource type="SphereShape3D" id="reach_shape"]
 radius = 0.75
@@ -25,13 +23,15 @@ script = ExtResource("1_script")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 shape = SubResource("capsule_shape")
 
-[node name="BodyMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
-mesh = SubResource("capsule_mesh")
+[node name="BodyMesh" parent="." instance=ExtResource("2_body")]
 
-[node name="Nose" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, -0.38)
-mesh = SubResource("nose_mesh")
+[node name="Skin" parent="." instance=ExtResource("3_skin")]
+
+[node name="Apron" parent="." instance=ExtResource("4_apron")]
+
+[node name="Hat" parent="." instance=ExtResource("5_hat")]
+
+[node name="Legs" parent="." instance=ExtResource("6_legs")]
 
 [node name="HoldPoint" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -0.55)

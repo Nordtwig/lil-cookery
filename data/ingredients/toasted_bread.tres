@@ -7,3 +7,5 @@
 script = ExtResource("2_gbawy")
 color = Color(0.62, 0.4, 0.2, 1)
 scene = ExtResource("1_ecm7f")
+made_from = Array[String](["bread"])
+method = 0

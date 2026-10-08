@@ -1,13 +1,7 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://stations/counter.gd" id="1_script"]
-
-[sub_resource type="StandardMaterial3D" id="counter_mat"]
-albedo_color = Color(0.55, 0.40, 0.28, 1)
-
-[sub_resource type="BoxMesh" id="counter_mesh"]
-material = SubResource("counter_mat")
-size = Vector3(1, 0.9, 1)
+[ext_resource type="PackedScene" path="res://stations/models/counter_whole.glb" id="2_body"]
 
 [sub_resource type="BoxShape3D" id="counter_shape"]
 size = Vector3(1, 0.9, 1)
@@ -26,8 +20,7 @@ collision_layer = 5
 collision_mask = 0
 script = ExtResource("1_script")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-mesh = SubResource("counter_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_body")]
 
 [node name="Shape" type="CollisionShape3D" parent="."]
 shape = SubResource("counter_shape")

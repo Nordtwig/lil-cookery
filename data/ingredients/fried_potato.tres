@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Ingredient" format=3]
+
+[ext_resource type="PackedScene" path="res://items/potato.tscn" id="1_scene"]
+[ext_resource type="Script" path="res://game/ingredient.gd" id="2_script"]
+
+[resource]
+script = ExtResource("2_script")
+color = Color(0.85, 0.62, 0.25, 1)
+steps = Array[int]([])
+scene = ExtResource("1_scene")
+made_from = Array[String](["potato"])
+method = 0

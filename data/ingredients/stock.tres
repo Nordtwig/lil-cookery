@@ -9,5 +9,6 @@ color = Color(0.86, 0.68, 0.32, 1)
 steps = Array[int]([])
 scene = ExtResource("1_scene")
 made_from = Array[String](["bones", "water"])
+method = 1
 yields = 4
 cook_time = 40.0

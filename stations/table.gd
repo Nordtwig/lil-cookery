@@ -107,6 +107,20 @@ var _plate_spots: Array[Marker3D] = []
 ## orders") — previously there was only ever one generic figure regardless of
 ## party size.
 var _customers: Array[Node3D] = []
+## One material per seat, per tinted part - a guest's shirt and hair are re-coloured
+## on seating so a party of four isn't four copies of the same person. Per-instance
+## material_override, never the glb's own material, which every seat shares.
+var _shirt_mats: Array[StandardMaterial3D] = []
+var _hair_mats: Array[StandardMaterial3D] = []
+
+const _SHIRT_COLORS: Array[Color] = [
+	Color(0.60, 0.42, 0.72), Color(0.32, 0.52, 0.68), Color(0.72, 0.46, 0.34),
+	Color(0.40, 0.60, 0.44), Color(0.74, 0.68, 0.40), Color(0.66, 0.36, 0.42),
+]
+const _HAIR_COLORS: Array[Color] = [
+	Color(0.18, 0.13, 0.10), Color(0.38, 0.26, 0.16),
+	Color(0.62, 0.50, 0.28), Color(0.52, 0.52, 0.54),
+]
 @onready var _want_label: Label3D = $Want
 var _want_fade_tween: Tween = null
 @onready var _cash: Node3D = $Cash
@@ -119,7 +133,14 @@ func _ready() -> void:
 	add_to_group("tables")
 	for i in capacity:
 		_plate_spots.append(get_node("PlateSpot%d" % i))
-		_customers.append(get_node("Customers/Customer%d" % i))
+		var customer: Node3D = get_node("Customers/Customer%d" % i)
+		# Each seat sits on a different edge, so turn it to face the table. Derived
+		# from its own offset rather than written into the scene, so moving a seat
+		# can't leave a guest facing away from the table it's sitting at.
+		customer.rotation.y = atan2(customer.position.x, customer.position.z)
+		_shirt_mats.append(_tint_part(customer, "Shirt"))
+		_hair_mats.append(_tint_part(customer, "Hair"))
+		_customers.append(customer)
 	_result_home = _result.position
 	_result.visible = false
 	_hide_customers()
@@ -128,6 +149,22 @@ func _ready() -> void:
 	_state = State.EMPTY
 	_timer = randf() * initial_delay_max
 	GameState.phase_changed.connect(_on_phase_changed)
+
+
+## Gives one of a guest's parts its own material so it can be re-coloured per party.
+func _tint_part(customer: Node3D, part: String) -> StandardMaterial3D:
+	var mesh := Station.find_mesh_instance(customer.get_node(part))
+	var mat := StandardMaterial3D.new()
+	mesh.material_override = mat
+	return mat
+
+
+## Rolls a fresh look for everyone sitting down. Purely cosmetic - nothing reads a
+## guest's colour, and a party of four landing on the same shirt twice is fine.
+func _dress_customers(count: int) -> void:
+	for i in count:
+		_shirt_mats[i].albedo_color = _SHIRT_COLORS[randi() % _SHIRT_COLORS.size()]
+		_hair_mats[i].albedo_color = _HAIR_COLORS[randi() % _HAIR_COLORS.size()]
 
 
 func _show_customers(count: int) -> void:
@@ -296,6 +333,7 @@ func _seat_party(size: int) -> void:
 	_first_serve_at = -1.0
 	_last_serve_at = -1.0
 	_state = State.WAITING
+	_dress_customers(size)
 	_show_customers(size)
 	_hide_want_label()
 

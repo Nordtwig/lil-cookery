@@ -53,7 +53,9 @@ var _clear_press_elapsed := 0.0
 ## tap/hold timing), via handle_input(self, delta) each physics frame.
 var ui_capture: Node = null
 
-@onready var _body_mesh: MeshInstance3D = $BodyMesh
+## The jacket is the only part that carries player_color - a generated glb instances as
+## a Node3D wrapper, so the mesh is inside it rather than being the node itself.
+@onready var _body_mesh: MeshInstance3D = Station.find_mesh_instance($BodyMesh)
 @onready var _hold_point: Marker3D = $HoldPoint
 @onready var _reach: Area3D = $Reach
 

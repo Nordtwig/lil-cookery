@@ -37,6 +37,12 @@ func can_add(item: Item) -> bool:
 	return item.item_type != "" and not item.is_dispenser() and components.size() < MAX_COMPONENTS
 
 
+## The type-only form, for plating a portion straight out of a vessel or off a
+## dispenser before the portion item exists (a patty out of a pan, a slice off a loaf).
+func can_add_type(type: String) -> bool:
+	return type != "" and Ingredients.dispenses_for(type) == "" and components.size() < MAX_COMPONENTS
+
+
 ## True if an order tag is currently attached (see tag_order/clear_tag).
 func is_tagged() -> bool:
 	return _tagged_dish != ""

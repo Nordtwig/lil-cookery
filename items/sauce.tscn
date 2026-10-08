@@ -1,9 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://items/item.gd" id="1_script"]
-
-[sub_resource type="BoxMesh" id="cup_mesh"]
-size = Vector3(0.11, 0.07, 0.07)
+[ext_resource type="PackedScene" path="res://items/models/sauce_whole.glb" id="2_whole"]
 
 [sub_resource type="BoxMesh" id="mark_mesh"]
 size = Vector3(0.03, 0.03, 0.03)
@@ -12,9 +10,7 @@ size = Vector3(0.03, 0.03, 0.03)
 script = ExtResource("1_script")
 item_type = "sauce"
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.035, 0)
-mesh = SubResource("cup_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
 
 [node name="Pieces" type="Node3D" parent="."]
 visible = false

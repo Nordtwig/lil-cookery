@@ -9,6 +9,19 @@ extends StaticBody3D
 
 var _highlight_count := 0
 
+## A prop a script re-colors at runtime (Burner, a LedgerAccumulator's Pile, the
+## receipt printer's Light) used to be a literal MeshInstance3D under a fixed node
+## name - a generated glb swapped in for it instances as a Node3D wrapper instead, so
+## $NodeName is no longer the mesh itself. Walk in to find it, one level or several.
+static func find_mesh_instance(root: Node) -> MeshInstance3D:
+	if root is MeshInstance3D:
+		return root
+	for child in root.get_children():
+		var found := find_mesh_instance(child)
+		if found != null:
+			return found
+	return null
+
 ## The cell this station currently occupies in StationGrid, set by
 ## StationGrid.register() at _ready(). Subclasses that override _ready()
 ## must call super._ready() first so registration still happens.

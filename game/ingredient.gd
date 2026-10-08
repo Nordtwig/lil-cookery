@@ -18,12 +18,14 @@ extends Resource
 @export var dispenses_raw: bool = false
 ## What a dispenser becomes once picked clean (a chicken leaves bones). Empty: it's gone.
 @export var remainder: String = ""
-## A second cook pass turns this type into another (a bread slice -> toasted_bread).
-@export var toasts_into: String = ""
-## A combined type: cooked together in a pot from these inputs (a multiset - repeat a
-## type to need two of it), the pot then holds `yields` portions of this. Inputs must
-## be fully prepped. Empty for anything that isn't made in a pot.
+## A transform: `method` turns these inputs into this type. A multiset - repeat a type
+## to need two of it. An input must be fully prepped unless the entry is prefixed
+## "any " ("any potato": whole or chopped, either boils). Empty for a plain ingredient.
+## STOVE takes exactly one input and converts it 1:1 (bread -> toasted_bread); POT
+## takes any set and the pot then holds `yields` portions of this (bones + water ->
+## stock). Every transform is declared here on its OUTPUT, never on the input.
 @export var made_from: Array[String] = []
+@export var method: Ingredients.Method = Ingredients.Method.STOVE
 @export var yields: int = 0
 ## Seconds for this type to cook from raw to the top of Perfect. 0 = the stove's
 ## default. A long cook is also a wide one - every band scales with it - so a stock

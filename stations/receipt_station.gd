@@ -31,7 +31,7 @@ const _TICKET_SCENE := preload("res://items/order_ticket.tscn")
 const _COLOR_IDLE := Color(0.85, 0.20, 0.15, 1)
 const _COLOR_WAITING := Color(0.20, 0.80, 0.25, 1)
 
-@onready var _light: MeshInstance3D = $Light
+@onready var _light: MeshInstance3D = find_mesh_instance($Light)
 var _light_mat: StandardMaterial3D
 
 

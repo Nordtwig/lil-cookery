@@ -1,13 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://items/item.gd" id="1_script"]
-
-[sub_resource type="SphereMesh" id="whole_mesh"]
-radius = 0.15
-height = 0.24
-
-[sub_resource type="BoxMesh" id="piece_mesh"]
-size = Vector3(0.07, 0.07, 0.07)
+[ext_resource type="PackedScene" path="res://items/models/tomato_whole.glb" id="2_whole"]
+[ext_resource type="PackedScene" path="res://items/models/tomato_pieces.glb" id="3_pieces"]
 
 [sub_resource type="BoxMesh" id="mark_mesh"]
 size = Vector3(0.05, 0.05, 0.05)
@@ -16,32 +11,10 @@ size = Vector3(0.05, 0.05, 0.05)
 script = ExtResource("1_script")
 item_type = "tomato"
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
-mesh = SubResource("whole_mesh")
+[node name="Mesh" parent="." instance=ExtResource("2_whole")]
 
-[node name="Pieces" type="Node3D" parent="."]
+[node name="Pieces" parent="." instance=ExtResource("3_pieces")]
 visible = false
-
-[node name="Piece1" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, 0.04, -0.05)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece2" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.06, 0.04, -0.07)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece3" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, 0.04, 0.01)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece4" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, 0.04, 0.05)
-mesh = SubResource("piece_mesh")
-
-[node name="Piece5" type="MeshInstance3D" parent="Pieces"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, 0.04, 0.08)
-mesh = SubResource("piece_mesh")
 
 [node name="SeasonMarks" type="Node3D" parent="."]
 visible = false

@@ -17,6 +17,13 @@ extends Station
 ## on a plain tap — mirroring the carry-plate/station-component symmetry.
 ## The whole is a normal carryable Item, so relocating it is just picking it
 ## up and setting it down somewhere else, where it keeps offering portions.
+## A vessel (Pot, Pan) is a dispenser too: tap acts on what's inside, hold lifts
+## it. Carrying a plate to one plates a portion straight out of it.
+##
+## Subclasses gate what may be set down with accepts() (a stove takes only
+## vessels) and hear about a held dispenser's contents changing while it stays
+## in the slot (_on_portion_dispensed / _on_held_contents_changed - a stove
+## scores a patty the moment it leaves the pan, not only when the pan lifts).
 ##
 ## Also handles untagging: empty-handed, holding interact on a tagged Plate
 ## sitting in the slot strips its order tag and hands the player back a real
@@ -112,7 +119,9 @@ func interact(player: Player) -> void:
 		held_item = null
 		player.take_item(_on_item_removed(item))
 	elif carried != null and held_item == null:
-		# Place the carried item onto the empty slot.
+		# Place the carried item onto the empty slot, if this station takes it.
+		if not accepts(carried):
+			return
 		var item := player.drop_item()
 		item.attach_to(_slot_marker())
 		held_item = item
@@ -131,6 +140,7 @@ func interact(player: Player) -> void:
 		# it, skipping the hand — repeated taps empty the whole dispenser
 		# into the tray (four taps deposits a chopped head's four scraps).
 		held_item.absorb(carried.dispense(self))
+		_on_held_contents_changed()
 		if carried.spent():
 			player.drop_item()
 			carried.queue_free()
@@ -144,7 +154,16 @@ func interact(player: Player) -> void:
 		# ingredient straight off a shelf's Crate without a crate-to-hand-to-
 		# tray round trip.
 		var d := held_item
-		carried.absorb(d.dispense(self))
+		carried.absorb(_dispense_from_held())
+		if d.spent():
+			held_item = null
+			d.queue_free()
+	elif carried is Plate and held_item != null and held_item.can_dispense() and (carried as Plate).can_add_type(held_item.dispensed_portion_type()):
+		# Carrying a plate, station holds a vessel or dispenser with a plateable
+		# portion inside: plate one straight out of it - a patty out of the pan
+		# on the stove, a ladle of sauce from the pot, a slice off a loaf.
+		var d := held_item
+		(carried as Plate).add_component(_dispense_from_held())
 		if d.spent():
 			held_item = null
 			d.queue_free()
@@ -221,13 +240,16 @@ func hints(player: Player) -> Array[Dictionary]:
 	elif carried == null and held_item != null:
 		out.append(hint("interact", "Pick up %s" % held_item.hint_name()))
 	elif carried != null and held_item == null:
-		out.append(hint("interact", "Put down %s" % carried.hint_name()))
+		if accepts(carried):
+			out.append(hint("interact", "Put down %s" % carried.hint_name()))
 	elif carried != null and held_item != null and carried.can_absorb(held_item):
 		out.append(hint("interact", "Scoop %s" % held_item.hint_name()))
 	elif carried != null and held_item != null and carried.can_dispense() and held_item.can_absorb_type(carried.dispensed_portion_type()):
 		out.append(hint("interact", "Add %s to %s" % [carried.dispensed_portion_type().capitalize(), held_item.hint_name()]))
 	elif carried != null and held_item != null and held_item.can_dispense() and carried.can_absorb_type(held_item.dispensed_portion_type()):
 		out.append(hint("interact", "Take one %s into %s" % [held_item.dispensed_portion_type().capitalize(), carried.hint_name()]))
+	elif carried is Plate and held_item != null and held_item.can_dispense() and (carried as Plate).can_add_type(held_item.dispensed_portion_type()):
+		out.append(hint("interact", "Plate %s" % held_item.dispensed_portion_type().capitalize()))
 	elif carried is Plate and (carried as Plate).can_add(held_item):
 		out.append(hint("interact", "Plate %s" % held_item.hint_name()))
 	elif held_item is Plate and (held_item as Plate).can_add(carried):
@@ -291,7 +313,7 @@ func _peel_one(player: Player) -> void:
 	var d := held_item
 	if d == null or not d.can_dispense():
 		return
-	player.take_item(d.dispense(self))
+	player.take_item(_dispense_from_held())
 	if d.spent():
 		held_item = null
 		d.queue_free()
@@ -314,6 +336,7 @@ func _merge_one(player: Player) -> void:
 	if d == null or not d.can_absorb(player.held_item):
 		return
 	d.absorb(player.drop_item())
+	_on_held_contents_changed()
 
 
 ## A sustained hold while carrying something the batch can absorb: put it in
@@ -325,7 +348,34 @@ func _absorb_and_take_whole(player: Player) -> void:
 	if d.can_absorb(player.held_item):
 		d.absorb(player.drop_item())
 	held_item = null
-	player.take_item(d)
+	player.take_item(_on_item_removed(d))
+
+
+## Hand out one portion from the held dispenser, telling the station about it
+## first: a stove scores a patty as it leaves the pan, the way it would score it
+## leaving the burner. Every dispense out of the slot goes through here.
+func _dispense_from_held() -> Item:
+	var portion := _on_portion_dispensed(held_item.dispense(self))
+	_on_held_contents_changed()
+	return portion
+
+
+## Whether a carried item may be set down here. Base: anything. A stove takes
+## only vessels.
+func accepts(_item: Item) -> bool:
+	return true
+
+
+## A portion just left the held dispenser while the dispenser itself stays in
+## the slot. Base: nothing to do.
+func _on_portion_dispensed(portion: Item) -> Item:
+	return portion
+
+
+## The held item is still here but what's inside it changed (a pan filled or
+## emptied by a tap). Base: nothing to do.
+func _on_held_contents_changed() -> void:
+	pass
 
 
 ## Reads the tag off before clearing it, so nothing is lost — the player gets

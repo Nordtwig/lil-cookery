@@ -1,10 +1,15 @@
 class_name CookStation
 extends SlotStation
 
-## A stove. Place a raw cookable item and it cooks on its own; a flat gauge
-## in front shows the band (Poor → Good → Perfect → Burnt). Pull it at the
-## right moment. Leaving it too long burns it to a low-value item — the cost
-## is systemic (lost quality), never a hard fail. A looping frying sound plays
+## A stove: heat plus a surface. The surface takes only vessels (a Pot, a Pan -
+## `Item.is_vessel()`), never bare food; what actually cooks is the vessel's
+## `cook_subject()` - the pot itself, or whatever sits in the pan. Everything
+## below that reads "the item" means that subject. A flat gauge in front shows
+## its band (Poor → Good → Perfect → Burnt). Pull it at the right moment.
+## Leaving it too long burns it to a low-value item — the cost is systemic
+## (lost quality), never a hard fail. Taking the food out of the pan by a tap
+## scores it the same as lifting the pan does (_on_portion_dispensed) - the
+## flip bonus counts either way. A looping frying sound plays
 ## for exactly as long as _is_heating() is true (started/stopped in _process,
 ## not tied to any specific placement/removal branch, so it can never be left
 ## running after an item's pulled or forgotten silent while one's cooking).
@@ -31,12 +36,13 @@ extends SlotStation
 ## running, never burning down from being set on a stove. Peeling slices off
 ## it (empty-handed tap/hold) works here too, via the shared SlotStation logic.
 ##
-## A bread slice can be *toasted* on a stove — a fresh cook on its own clock
-## (its doneness starts from 0, unrelated to how the loaf was baked), darkening
-## it toward the toasted color. Pull it once it's toasted and it becomes
-## toasted_bread (what bruschetta wants), its quality the average of the loaf's
-## bake and how well you timed the toast. Pull too early and it's just a warm
-## slice — put it back to keep toasting.
+## A stove also runs STOVE transforms (`Ingredients.stove_output_for`): a
+## bread slice toasts into toasted_bread, a chopped potato fries into
+## fried_potato. A fresh cook on its own clock (doneness starts from 0,
+## unrelated to any earlier cook), tinting toward the output's color. Pull it
+## past _TRANSFORM_MIN and it becomes the output, its quality the average of
+## what came in and how well you timed this heat. Pull too early and it's
+## just warm - put it back to keep going.
 
 ## Seconds for doneness to travel from raw (0) to the top of the Perfect
 ## window (1.0). The Perfect band is ~1.5s of this at the default.
@@ -52,11 +58,10 @@ extends SlotStation
 const _BURNER_COLD := Color(0.12, 0.12, 0.13)
 const _BURNER_LIT := Color(0.95, 0.35, 0.12)
 
-## Doneness a slice must reach before pulling it actually counts as toasted
-## (and transforms it). Below this it's just a warm slice — no harm, put it
-## back to keep going. Matches the Good-band boundary, so light heat isn't
-## "toast" yet.
-const _TOAST_MIN := 0.5
+## Doneness a transform input must reach before pulling it converts it.
+## Below this it's just warm - no harm, put it back to keep going. Matches
+## the Good-band boundary, so light heat isn't "toast" yet.
+const _TRANSFORM_MIN := 0.5
 
 const _BAND_COLORS := {
 	"poor": Color(0.90, 0.50, 0.20),
@@ -70,7 +75,7 @@ const _BAND_COLORS := {
 @onready var _fill_mesh: MeshInstance3D = $Gauge/FillPivot/Fill
 @onready var _flip_cue: Label3D = $FlipCue
 @onready var _fry_sound: AudioStreamPlayer3D = $FrySound
-@onready var _burner: MeshInstance3D = $Burner
+@onready var _burner: MeshInstance3D = find_mesh_instance($Burner)
 
 var burner_on := false
 var _burner_mat: StandardMaterial3D
@@ -131,18 +136,20 @@ func _process(delta: float) -> void:
 		_toggle_player = null
 		_toggle_held = 0.0
 		_toggled_this_press = false
+	# Resolve a pending tap/hold first - a patty tapped out of a heating pan has
+	# to leave before this frame's heat lands on it.
+	super._process(delta)
 	var heating := _is_heating()
 	if heating and not _fry_sound.playing:
 		_fry_sound.play()
 	elif not heating and _fry_sound.playing:
 		_fry_sound.stop()
 	if heating:
-		var t := held_item.cook_time()
-		held_item.cook(delta, 1.0 / (t if t > 0.0 else cook_duration))
+		var subject := _subject()
+		var t := subject.cook_time()
+		subject.cook(delta, 1.0 / (t if t > 0.0 else cook_duration))
 		_update_gauge()
 		_update_flip_window(delta)
-		return
-	super._process(delta)  # let SlotStation resolve a pending dispense-take
 
 
 func action(_player: Player) -> void:
@@ -163,12 +170,23 @@ func action_hold(player: Player, delta: float) -> void:
 
 func _catch_flip() -> void:
 	_flipped_well = true
-	held_item.flip_visual()
+	_subject().flip_visual()
 	_close_flip_window()
 
 
+## Only vessels go on a burner.
+func accepts(item: Item) -> bool:
+	return item.is_vessel()
+
+
+## What is actually cooking: the held vessel's subject, or null.
+func _subject() -> Item:
+	return held_item.cook_subject() if held_item != null else null
+
+
 func _on_item_placed(item: Item) -> void:
-	_gauge.visible = _can_cook(item) or _can_toast(item)
+	var subject := item.cook_subject()
+	_gauge.visible = subject != null and (_can_cook(subject) or _can_transform(subject))
 	if _gauge.visible:
 		_update_gauge()
 	_flip_triggered = false
@@ -177,32 +195,49 @@ func _on_item_placed(item: Item) -> void:
 
 
 func _on_item_removed(item: Item) -> Item:
-	if _can_toast(item):
-		_gauge.visible = false
-		_close_flip_window()
-		if item.doneness >= _TOAST_MIN:
-			_toast_transform(item)
-		return item
-	if _can_cook(item):
-		_score_and_lock(item)
-		return item
+	var subject := item.cook_subject()
+	if subject != null:
+		_settle(subject)
 	_gauge.visible = false
 	_close_flip_window()
 	return item
 
 
-## Turn a sufficiently-toasted slice into toasted_bread. Its final quality is
-## the average of the loaf's inherited bake quality and how well the toast was
-## timed (plus any flip bonus) — both baking and toasting matter for a good
-## bruschetta. transform_into re-tints to the toasted base color, so doneness
-## no longer drives its look afterward.
-func _toast_transform(item: Item) -> void:
-	var toast_score := item.cook_score()
+## Food taken out of the pan by a tap leaves the heat the same as the pan lifting.
+func _on_portion_dispensed(portion: Item) -> Item:
+	_settle(portion)
+	return portion
+
+
+## The pan was filled or emptied in place: start or stop gauging its new content.
+func _on_held_contents_changed() -> void:
+	_on_item_placed(held_item)
+
+
+## An item is leaving the heat: lock in its cook score, or convert a transform
+## input that got far enough. Nothing happens to something the stove wasn't
+## acting on (a stock cup ladled from the pot).
+func _settle(subject: Item) -> void:
+	if _can_transform(subject):
+		_close_flip_window()
+		if subject.doneness >= _TRANSFORM_MIN:
+			_transform(subject)
+	elif _can_cook(subject):
+		_score_and_lock(subject)
+
+
+## Turn a sufficiently-heated input into its STOVE output. Its final quality
+## is the average of what came in (a slice's inherited bake, a potato's chop)
+## and how well this heat was timed (plus any flip bonus) - both stages matter.
+## transform_into re-tints to the output's base color, so doneness no longer
+## drives its look afterward.
+func _transform(item: Item) -> void:
+	var heat_score := item.cook_score()
 	if _flipped_well:
-		toast_score = minf(1.0, toast_score + flip_bonus)
-	var bake_q := item.inherited_quality if item.inherited_quality >= 0.0 else item.quality_value()
-	var final_q := clampf((bake_q + toast_score) / 2.0, 0.0, 1.0)
-	item.transform_into("toasted_bread")
+		heat_score = minf(1.0, heat_score + flip_bonus)
+	var in_q := item.inherited_quality if item.inherited_quality >= 0.0 else item.quality_value()
+	var final_q := clampf((in_q + heat_score) / 2.0, 0.0, 1.0)
+	item.transform_into(Ingredients.stove_output_for(item.item_type))
 	item.inherited_quality = final_q
 
 
@@ -217,7 +252,8 @@ func _score_and_lock(item: Item) -> float:
 
 
 func _is_heating() -> bool:
-	return burner_on and held_item != null and (_can_cook(held_item) or _can_toast(held_item))
+	var subject := _subject()
+	return burner_on and subject != null and (_can_cook(subject) or _can_transform(subject))
 
 
 ## True both the first time (COOK is the pending step) and for a resumed item
@@ -235,11 +271,18 @@ func _can_cook(item: Item) -> bool:
 	)
 
 
-## True for a finished portion that toasting turns into something else — a
-## bread slice → toasted_bread. This is how a slice (which has no COOK step of
-## its own) still cooks on a stove: a fresh heat on its own clock.
-func _can_toast(item: Item) -> bool:
-	return item != null and Ingredients.toasts_into(item.item_type) != ""
+## True for an item some STOVE recipe turns into something else - a bread
+## slice into toasted_bread, a chopped potato into fried_potato. This is how
+## an item with no COOK step of its own still cooks on a stove: a fresh heat
+## on its own clock. The recipe's entry decides whether prep comes first - a
+## plain "potato" wants the board done, "any potato" takes it whole.
+func _can_transform(item: Item) -> bool:
+	if item == null:
+		return false
+	var out := Ingredients.stove_output_for(item.item_type)
+	if out == "":
+		return false
+	return item.is_fully_prepped() or Ingredients.input_any(Ingredients.made_from_for(out)[0])
 
 
 func hints(player: Player) -> Array[Dictionary]:
@@ -257,13 +300,14 @@ func get_inspect_text() -> String:
 
 
 func _update_gauge() -> void:
-	var normalized := clampf(held_item.doneness / Item.BURNT_CAP, 0.0, 1.0)
+	var subject := _subject()
+	var normalized := clampf(subject.doneness / Item.BURNT_CAP, 0.0, 1.0)
 	_fill_pivot.scale.x = maxf(normalized, 0.001)
-	_fill_mat.albedo_color = _BAND_COLORS[held_item.current_cook_band()]
+	_fill_mat.albedo_color = _BAND_COLORS[subject.current_cook_band()]
 
 
 func _update_flip_window(delta: float) -> void:
-	if not _flip_triggered and held_item.doneness >= flip_window_start:
+	if not _flip_triggered and _subject().doneness >= flip_window_start:
 		_open_flip_window()
 	if _flip_open:
 		_flip_timer -= delta
